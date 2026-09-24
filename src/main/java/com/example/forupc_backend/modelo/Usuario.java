@@ -1,6 +1,7 @@
 package com.example.forupc_backend.modelo;
 
 import jakarta.persistence.*;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "usuario")
@@ -10,15 +11,24 @@ public class Usuario {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
+    @Column(unique = true, nullable = false)
+    private String email;
+
     private String nombre;
 
     private String apellido;
 
-    @Column(unique = true, nullable = false)
-    private String email;
+    @Column(name = "password_hash", nullable = false)
+    private String passwordHash;
 
-    @Column(nullable = false)
-    private String password;
+    @Enumerated(EnumType.STRING)
+    private Rol rol;
+
+    @Column(name = "reset_token")
+    private String resetToken;
+
+    @Column(name = "reset_token_expiry")
+    private LocalDateTime resetTokenExpiry;
 
     @ManyToOne
     @JoinColumn(name = "carrera_id")
@@ -28,21 +38,17 @@ public class Usuario {
     @JoinColumn(name = "anio_id")
     private Anio anio;
 
-    private String rol;
-
     public Usuario() {
     }
 
-    public Usuario(String nombre, String apellido, String email,
-                   String password, Carrera carrera, Anio anio, String rol) {
-
+    public Usuario(String email, String nombre, String apellido, String passwordHash, Rol rol, Carrera carrera, Anio anio) {
+        this.email = email;
         this.nombre = nombre;
         this.apellido = apellido;
-        this.email = email;
-        this.password = password;
+        this.passwordHash = passwordHash;
+        this.rol = rol;
         this.carrera = carrera;
         this.anio = anio;
-        this.rol = rol;
     }
 
     public Integer getId() {
@@ -51,6 +57,14 @@ public class Usuario {
 
     public void setId(Integer id) {
         this.id = id;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
     }
 
     public String getNombre() {
@@ -69,20 +83,36 @@ public class Usuario {
         this.apellido = apellido;
     }
 
-    public String getEmail() {
-        return email;
+    public String getPasswordHash() {
+        return passwordHash;
     }
 
-    public void setEmail(String email) {
-        this.email = email;
+    public void setPasswordHash(String passwordHash) {
+        this.passwordHash = passwordHash;
     }
 
-    public String getPassword() {
-        return password;
+    public Rol getRol() {
+        return rol;
     }
 
-    public void setPassword(String password) {
-        this.password = password;
+    public void setRol(Rol rol) {
+        this.rol = rol;
+    }
+
+    public String getResetToken() {
+        return resetToken;
+    }
+
+    public void setResetToken(String resetToken) {
+        this.resetToken = resetToken;
+    }
+
+    public LocalDateTime getResetTokenExpiry() {
+        return resetTokenExpiry;
+    }
+
+    public void setResetTokenExpiry(LocalDateTime resetTokenExpiry) {
+        this.resetTokenExpiry = resetTokenExpiry;
     }
 
     public Carrera getCarrera() {
@@ -99,13 +129,5 @@ public class Usuario {
 
     public void setAnio(Anio anio) {
         this.anio = anio;
-    }
-
-    public String getRol() {
-        return rol;
-    }
-
-    public void setRol(String rol) {
-        this.rol = rol;
     }
 }
