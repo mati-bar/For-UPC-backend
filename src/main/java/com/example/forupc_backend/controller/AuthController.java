@@ -1,10 +1,10 @@
 package com.example.forupc_backend.controller;
 
-import com.example.demo.dto.*;
-import com.example.demo.modelo.Rol;
-import com.example.demo.modelo.Usuario;
-import com.example.demo.repositorio.UsuarioRepository;
-import com.example.demo.seguridad.JwtService;
+import com.example.forupc_backend.dto.*;
+import com.example.forupc_backend.modelo.Rol;
+import com.example.forupc_backend.modelo.Usuario;
+import com.example.forupc_backend.repository.UsuarioRepository;
+import com.example.forupc_backend.seguridad.JwtService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
@@ -34,13 +34,6 @@ public class AuthController {
             return ResponseEntity.status(409).body("Ya existe un usuario con ese email");
         }
 
-        Usuario nuevo = new Usuario(
-                datos.getEmail(),
-                datos.getNombre(),
-                passwordEncoder.encode(datos.getPassword()),
-                Rol.CLIENTE
-        );
-        usuarioRepositorio.save(nuevo);
 
         return ResponseEntity.status(201).build();
     }

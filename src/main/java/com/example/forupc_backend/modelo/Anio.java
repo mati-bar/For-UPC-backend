@@ -3,7 +3,7 @@ package com.example.forupc_backend.modelo;
 import jakarta.persistence.*;
 
 @Entity
-@Table(name = "años")
+@Table(name = "anios")
 public class Anio {
 
     @Id
