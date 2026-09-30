@@ -1,7 +1,10 @@
 package com.example.forupc_backend.modelo;
 
 import jakarta.persistence.*;
+
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "usuario")
@@ -14,14 +17,17 @@ public class Usuario {
     @Column(unique = true, nullable = false)
     private String email;
 
+    @Column(nullable = false)
     private String nombre;
 
+    @Column(nullable = false)
     private String apellido;
 
     @Column(name = "password_hash", nullable = false)
     private String passwordHash;
 
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private Rol rol;
 
     @Column(name = "reset_token")
@@ -30,25 +36,28 @@ public class Usuario {
     @Column(name = "reset_token_expiry")
     private LocalDateTime resetTokenExpiry;
 
-    @ManyToOne
-    @JoinColumn(name = "carrera_id")
-    private Carrera carrera;
-
-    @ManyToOne
-    @JoinColumn(name = "anio_id")
-    private Anio anio;
+    @OneToMany(
+            mappedBy = "usuario",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
+    private List<Inscripcion> inscripciones = new ArrayList<>();
 
     public Usuario() {
     }
 
-    public Usuario(String email, String nombre, String apellido, String passwordHash, Rol rol, Carrera carrera, Anio anio) {
+    public Usuario(
+            String email,
+            String nombre,
+            String apellido,
+            String passwordHash,
+            Rol rol
+    ) {
         this.email = email;
         this.nombre = nombre;
         this.apellido = apellido;
         this.passwordHash = passwordHash;
         this.rol = rol;
-        this.carrera = carrera;
-        this.anio = anio;
     }
 
     public Integer getId() {
@@ -115,19 +124,21 @@ public class Usuario {
         this.resetTokenExpiry = resetTokenExpiry;
     }
 
-    public Carrera getCarrera() {
-        return carrera;
+    public List<Inscripcion> getInscripciones() {
+        return inscripciones;
     }
 
-    public void setCarrera(Carrera carrera) {
-        this.carrera = carrera;
+    public void setInscripciones(List<Inscripcion> inscripciones) {
+        this.inscripciones = inscripciones;
     }
 
-    public Anio getAnio() {
-        return anio;
+    public void agregarInscripcion(Inscripcion inscripcion) {
+        inscripciones.add(inscripcion);
+        inscripcion.setUsuario(this);
     }
 
-    public void setAnio(Anio anio) {
-        this.anio = anio;
+    public void eliminarInscripcion(Inscripcion inscripcion) {
+        inscripciones.remove(inscripcion);
+        inscripcion.setUsuario(null);
     }
 }

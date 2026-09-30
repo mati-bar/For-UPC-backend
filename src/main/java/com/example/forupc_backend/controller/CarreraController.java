@@ -2,13 +2,13 @@ package com.example.forupc_backend.controller;
 
 import com.example.forupc_backend.modelo.Carrera;
 import com.example.forupc_backend.repository.CarreraRepository;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/carreras")
-@CrossOrigin(origins = "*")
 public class CarreraController {
 
     private final CarreraRepository carreraRepository;
@@ -17,23 +17,55 @@ public class CarreraController {
         this.carreraRepository = carreraRepository;
     }
 
+    // Obtener todas las carreras
     @GetMapping
-    public List<Carrera> listar() {
-        return carreraRepository.findAll();
+    public ResponseEntity<List<Carrera>> obtenerTodas() {
+        return ResponseEntity.ok(carreraRepository.findAll());
     }
 
+    // Obtener una carrera por ID
     @GetMapping("/{id}")
-    public Carrera buscar(@PathVariable Integer id) {
-        return carreraRepository.findById(id).orElse(null);
+    public ResponseEntity<?> obtenerPorId(@PathVariable Integer id) {
+
+        Carrera carrera = carreraRepository
+                .findById(id)
+                .orElse(null);
+
+        if (carrera == null) {
+            return ResponseEntity
+                    .notFound()
+                    .build();
+        }
+
+        return ResponseEntity.ok(carrera);
     }
 
+    // Crear una carrera
     @PostMapping
-    public Carrera guardar(@RequestBody Carrera carrera) {
-        return carreraRepository.save(carrera);
+    public ResponseEntity<Carrera> crear(
+            @RequestBody Carrera carrera
+    ) {
+        Carrera nueva = carreraRepository.save(carrera);
+
+        return ResponseEntity
+                .status(201)
+                .body(nueva);
     }
 
+    // Eliminar una carrera
     @DeleteMapping("/{id}")
-    public void eliminar(@PathVariable Integer id) {
+    public ResponseEntity<?> eliminar(@PathVariable Integer id) {
+
+        if (!carreraRepository.existsById(id)) {
+            return ResponseEntity
+                    .notFound()
+                    .build();
+        }
+
         carreraRepository.deleteById(id);
+
+        return ResponseEntity.ok(
+                "Carrera eliminada correctamente"
+        );
     }
 }

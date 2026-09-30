@@ -14,30 +14,33 @@ public class Publicacion {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
+    @Column(nullable = false)
     private String titulo;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(columnDefinition = "TEXT", nullable = false)
     private String contenido;
 
+    @Column(name = "fecha_publicacion", nullable = false)
     private LocalDateTime fechaPublicacion;
 
-    @ManyToMany
-    @JoinTable(
-            name = "publicacion_carrera",
-            joinColumns = @JoinColumn(name = "publicacion_id"),
-            inverseJoinColumns = @JoinColumn(name = "carrera_id")
+    @OneToMany(
+            mappedBy = "publicacion",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
     )
-    private List<Carrera> carreras = new ArrayList<>();
-
-    @ManyToMany
-    @JoinTable(
-            name = "publicacion_anio",
-            joinColumns = @JoinColumn(name = "publicacion_id"),
-            inverseJoinColumns = @JoinColumn(name = "anio_id")
-    )
-    private List<Anio> anios = new ArrayList<>();
+    private List<PublicacionDestino> destinos = new ArrayList<>();
 
     public Publicacion() {
+    }
+
+    public Publicacion(
+            String titulo,
+            String contenido,
+            LocalDateTime fechaPublicacion
+    ) {
+        this.titulo = titulo;
+        this.contenido = contenido;
+        this.fechaPublicacion = fechaPublicacion;
     }
 
     public Integer getId() {
@@ -72,19 +75,21 @@ public class Publicacion {
         this.fechaPublicacion = fechaPublicacion;
     }
 
-    public List<Carrera> getCarreras() {
-        return carreras;
+    public List<PublicacionDestino> getDestinos() {
+        return destinos;
     }
 
-    public void setCarreras(List<Carrera> carreras) {
-        this.carreras = carreras;
+    public void setDestinos(List<PublicacionDestino> destinos) {
+        this.destinos = destinos;
     }
 
-    public List<Anio> getAnios() {
-        return anios;
+    public void agregarDestino(PublicacionDestino destino) {
+        destinos.add(destino);
+        destino.setPublicacion(this);
     }
 
-    public void setAnios(List<Anio> anios) {
-        this.anios = anios;
+    public void eliminarDestino(PublicacionDestino destino) {
+        destinos.remove(destino);
+        destino.setPublicacion(null);
     }
 }

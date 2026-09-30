@@ -3,13 +3,14 @@ package com.example.forupc_backend.modelo;
 import jakarta.persistence.*;
 
 @Entity
-@Table(name = "anios")
+@Table(name = "anio")
 public class Anio {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
+    @Column(nullable = false)
     private Integer numero;
 
     public Anio() {
