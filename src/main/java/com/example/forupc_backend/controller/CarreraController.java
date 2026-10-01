@@ -68,4 +68,21 @@ public class CarreraController {
                 "Carrera eliminada correctamente"
         );
     }
+
+    // Obtener una carrera por ID
+    @GetMapping("/obtenerCarrerasYAnio")
+    public ResponseEntity<?> obtenerPorId(@PathVariable Integer id) {
+
+        Carrera carrera = carreraRepository
+                .findById(id)
+                .orElse(null);
+
+        if (carrera == null) {
+            return ResponseEntity
+                    .notFound()
+                    .build();
+        }
+
+        return ResponseEntity.ok(carrera);
+    }
 }
