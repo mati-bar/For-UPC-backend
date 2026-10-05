@@ -36,19 +36,26 @@ public class AuthController {
         this.anioCarreraRepository = anioCarreraRepository;
     }
 
+
     // =========================
     // REGISTRO
     // =========================
 
     @PostMapping("/registro")
-    public ResponseEntity<?> registrar(@RequestBody RegistroRequest datos) {
+    public ResponseEntity<?> registrar(
+            @RequestBody RegistroRequest datos
+    ) {
 
         // Verificar si ya existe el email
-        if (usuarioRepositorio.findByEmail(datos.getEmail()).isPresent()) {
+        if (usuarioRepositorio
+                .findByEmail(datos.getEmail())
+                .isPresent()) {
+
             return ResponseEntity
                     .status(409)
                     .body("Ya existe un usuario con ese email");
         }
+
 
         // Verificar que tenga al menos una inscripción
         if (datos.getInscripciones() == null ||
@@ -56,8 +63,11 @@ public class AuthController {
 
             return ResponseEntity
                     .badRequest()
-                    .body("El usuario debe tener al menos una inscripción");
+                    .body(
+                            "El usuario debe tener al menos una inscripción"
+                    );
         }
+
 
         // Crear usuario
         Usuario nuevo = new Usuario(
@@ -68,32 +78,47 @@ public class AuthController {
                 Rol.ESTUDIANTE
         );
 
-        // Crear las inscripciones
-        for (InscripcionRequest inscripcionRequest : datos.getInscripciones()) {
 
-            // Buscar la combinación carrera + año
-            AnioCarrera anioCarrera = anioCarreraRepository
-                    .findById(inscripcionRequest.getAnioCarreraId())
-                    .orElse(null);
+        // Crear inscripciones
+        for (InscripcionRequest inscripcionRequest :
+                datos.getInscripciones()) {
 
+            AnioCarrera anioCarrera =
+                    anioCarreraRepository
+                            .findById(
+                                    inscripcionRequest
+                                            .getAnioCarreraId()
+                            )
+                            .orElse(null);
+
+
+            // Verificar que exista la combinación
             if (anioCarrera == null) {
+
                 return ResponseEntity
                         .badRequest()
-                        .body("La combinación de carrera y año indicada no existe");
+                        .body(
+                                "La combinación de carrera y año indicada no existe"
+                        );
             }
 
+
             // Crear inscripción
-            Inscripcion inscripcion = new Inscripcion(
-                    nuevo,
-                    anioCarrera
-            );
+            Inscripcion inscripcion =
+                    new Inscripcion(
+                            nuevo,
+                            anioCarrera
+                    );
+
 
             // Agregar inscripción al usuario
             nuevo.agregarInscripcion(inscripcion);
         }
 
-        // Guardar usuario y sus inscripciones
+
+        // Guardar usuario
         usuarioRepositorio.save(nuevo);
+
 
         return ResponseEntity
                 .status(201)
@@ -106,13 +131,16 @@ public class AuthController {
     // =========================
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequest datos) {
+    public ResponseEntity<?> login(
+            @RequestBody LoginRequest datos
+    ) {
 
-        Usuario usuario = usuarioRepositorio
-                .findByEmail(datos.getEmail())
-                .orElse(null);
+        Usuario usuario =
+                usuarioRepositorio
+                        .findByEmail(datos.getEmail())
+                        .orElse(null);
 
-        // Verificar usuario y contraseña
+
         if (usuario == null ||
                 !passwordEncoder.matches(
                         datos.getPassword(),
@@ -121,14 +149,18 @@ public class AuthController {
 
             return ResponseEntity
                     .status(401)
-                    .body("Email o contraseña incorrectos");
+                    .body(
+                            "Email o contraseña incorrectos"
+                    );
         }
 
-        // Generar JWT
-        String token = jwtService.generarToken(
-                usuario.getEmail(),
-                usuario.getRol().name()
-        );
+
+        String token =
+                jwtService.generarToken(
+                        usuario.getEmail(),
+                        usuario.getRol().name()
+                );
+
 
         return ResponseEntity.ok(
                 new TokenResponse(token)
@@ -145,31 +177,38 @@ public class AuthController {
             @RequestBody ResetPasswordRequest datos
     ) {
 
-        Usuario usuario = usuarioRepositorio
-                .findByResetToken(datos.getToken())
-                .orElse(null);
+        Usuario usuario =
+                usuarioRepositorio
+                        .findByResetToken(datos.getToken())
+                        .orElse(null);
 
-        // Verificar token
+
         if (usuario == null ||
                 usuario.getResetTokenExpiry() == null ||
-                usuario.getResetTokenExpiry().isBefore(LocalDateTime.now())) {
+                usuario.getResetTokenExpiry()
+                        .isBefore(LocalDateTime.now())) {
 
             return ResponseEntity
                     .status(400)
-                    .body("El link no es válido o ya venció");
+                    .body(
+                            "El link no es válido o ya venció"
+                    );
         }
 
-        // Cambiar contraseña
+
         usuario.setPasswordHash(
-                passwordEncoder.encode(datos.getNewPassword())
+                passwordEncoder.encode(
+                        datos.getNewPassword()
+                )
         );
 
-        // Eliminar token utilizado
+
         usuario.setResetToken(null);
         usuario.setResetTokenExpiry(null);
 
-        // Guardar cambios
+
         usuarioRepositorio.save(usuario);
+
 
         return ResponseEntity.ok(
                 "Contraseña actualizada correctamente"

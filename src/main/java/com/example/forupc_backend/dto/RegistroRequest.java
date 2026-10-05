@@ -8,7 +8,6 @@ public class RegistroRequest {
     private String nombre;
     private String apellido;
     private String password;
-
     private List<InscripcionRequest> inscripciones;
 
     public RegistroRequest() {

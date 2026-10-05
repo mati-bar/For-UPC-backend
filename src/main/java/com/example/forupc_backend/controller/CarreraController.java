@@ -11,6 +11,7 @@ import com.example.forupc_backend.repository.CarreraRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @RestController
@@ -59,10 +60,44 @@ public class CarreraController {
                 .orElse(null);
 
         if (carrera == null) {
-            return ResponseEntity.notFound().build();
+            return ResponseEntity
+                    .notFound()
+                    .build();
         }
 
         return ResponseEntity.ok(carrera);
+    }
+
+
+    // =========================
+    // OBTENER AÑOS DE UNA CARRERA
+    // =========================
+
+    @GetMapping("/{id}/anios")
+    public ResponseEntity<?> obtenerAnios(
+            @PathVariable Integer id
+    ) {
+
+        Carrera carrera = carreraRepository
+                .findById(id)
+                .orElse(null);
+
+        if (carrera == null) {
+            return ResponseEntity
+                    .notFound()
+                    .build();
+        }
+
+        List<AnioCarrera> relaciones =
+                anioCarreraRepository.findByCarrera(carrera);
+
+        List<Anio> anios = new ArrayList<>();
+
+        for (AnioCarrera relacion : relaciones) {
+            anios.add(relacion.getAnio());
+        }
+
+        return ResponseEntity.ok(anios);
     }
 
 
@@ -96,7 +131,7 @@ public class CarreraController {
         }
 
 
-        // Verificar si ya existe una carrera con ese nombre
+        // Verificar si ya existe
         for (Carrera carreraExistente : carreraRepository.findAll()) {
 
             if (carreraExistente.getNombre()
@@ -118,17 +153,89 @@ public class CarreraController {
                 carreraRepository.save(carrera);
 
 
-        // Crear las relaciones entre carrera y años
+        // Crear relaciones carrera + año
         for (int numero = 1;
              numero <= datos.getCantidadAnios();
              numero++) {
 
-            // Buscar el año por su número
             Anio anio = anioRepository
                     .findByNumero(numero)
                     .orElse(null);
 
-            // Verificar que exista
+            if (anio == null) {
+
+                return ResponseEntity
+                        .badRequest()
+                        .body(
+                                "No existe el año " +
+                                        numero +
+                                        " en la base de datos"
+                        );
+            }
+
+            AnioCarrera anioCarrera =
+                    new AnioCarrera(
+                            carreraGuardada,
+                            anio
+                    );
+
+            anioCarreraRepository.save(anioCarrera);
+        }
+
+
+        return ResponseEntity
+                .status(201)
+                .body(carreraGuardada);
+    }
+
+
+    // =========================
+    // CONFIGURAR AÑOS DE CARRERA
+    // =========================
+
+    @PutMapping("/{id}/anios")
+    public ResponseEntity<?> configurarAnios(
+            @PathVariable Integer id,
+            @RequestBody CarreraRequest datos
+    ) {
+
+        // Buscar carrera
+        Carrera carrera = carreraRepository
+                .findById(id)
+                .orElse(null);
+
+        if (carrera == null) {
+            return ResponseEntity
+                    .notFound()
+                    .build();
+        }
+
+
+        // Verificar cantidad
+        if (datos.getCantidadAnios() == null ||
+                datos.getCantidadAnios() < 1 ||
+                datos.getCantidadAnios() > 4) {
+
+            return ResponseEntity
+                    .badRequest()
+                    .body("La cantidad de años debe estar entre 1 y 4");
+        }
+
+
+        // Obtener relaciones actuales
+        List<AnioCarrera> relacionesActuales =
+                anioCarreraRepository.findByCarrera(carrera);
+
+
+        // Crear los años que falten
+        for (int numero = 1;
+             numero <= datos.getCantidadAnios();
+             numero++) {
+
+            Anio anio = anioRepository
+                    .findByNumero(numero)
+                    .orElse(null);
+
             if (anio == null) {
 
                 return ResponseEntity
@@ -141,23 +248,36 @@ public class CarreraController {
             }
 
 
-            // Crear relación carrera + año
-            AnioCarrera anioCarrera =
-                    new AnioCarrera(
-                            carreraGuardada,
-                            anio
-                    );
+            boolean yaExiste = false;
+
+            for (AnioCarrera relacion : relacionesActuales) {
+
+                if (relacion.getAnio()
+                        .getNumero()
+                        .equals(numero)) {
+
+                    yaExiste = true;
+                    break;
+                }
+            }
 
 
-            // Guardar relación
-            anioCarreraRepository.save(anioCarrera);
+            if (!yaExiste) {
+
+                AnioCarrera nuevaRelacion =
+                        new AnioCarrera(
+                                carrera,
+                                anio
+                        );
+
+                anioCarreraRepository.save(nuevaRelacion);
+            }
         }
 
 
-        // Devolver carrera creada
-        return ResponseEntity
-                .status(201)
-                .body(carreraGuardada);
+        return ResponseEntity.ok(
+                "Años de la carrera configurados correctamente"
+        );
     }
 
 
