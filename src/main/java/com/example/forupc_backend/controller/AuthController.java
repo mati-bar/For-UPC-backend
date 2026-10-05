@@ -1,13 +1,11 @@
 package com.example.forupc_backend.controller;
 
 import com.example.forupc_backend.dto.*;
-import com.example.forupc_backend.modelo.Anio;
-import com.example.forupc_backend.modelo.Carrera;
+import com.example.forupc_backend.modelo.AnioCarrera;
 import com.example.forupc_backend.modelo.Inscripcion;
 import com.example.forupc_backend.modelo.Rol;
 import com.example.forupc_backend.modelo.Usuario;
-import com.example.forupc_backend.repository.AnioRepository;
-import com.example.forupc_backend.repository.CarreraRepository;
+import com.example.forupc_backend.repository.AnioCarreraRepository;
 import com.example.forupc_backend.repository.UsuarioRepository;
 import com.example.forupc_backend.seguridad.JwtService;
 
@@ -24,21 +22,18 @@ public class AuthController {
     private final UsuarioRepository usuarioRepositorio;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
-    private final CarreraRepository carreraRepository;
-    private final AnioRepository anioRepository;
+    private final AnioCarreraRepository anioCarreraRepository;
 
     public AuthController(
             UsuarioRepository usuarioRepositorio,
             PasswordEncoder passwordEncoder,
             JwtService jwtService,
-            CarreraRepository carreraRepository,
-            AnioRepository anioRepository
+            AnioCarreraRepository anioCarreraRepository
     ) {
         this.usuarioRepositorio = usuarioRepositorio;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
-        this.carreraRepository = carreraRepository;
-        this.anioRepository = anioRepository;
+        this.anioCarreraRepository = anioCarreraRepository;
     }
 
     // =========================
@@ -76,33 +71,21 @@ public class AuthController {
         // Crear las inscripciones
         for (InscripcionRequest inscripcionRequest : datos.getInscripciones()) {
 
-            // Buscar carrera
-            Carrera carrera = carreraRepository
-                    .findById(inscripcionRequest.getCarreraId())
+            // Buscar la combinación carrera + año
+            AnioCarrera anioCarrera = anioCarreraRepository
+                    .findById(inscripcionRequest.getAnioCarreraId())
                     .orElse(null);
 
-            if (carrera == null) {
+            if (anioCarrera == null) {
                 return ResponseEntity
                         .badRequest()
-                        .body("La carrera indicada no existe");
-            }
-
-            // Buscar año
-            Anio anio = anioRepository
-                    .findById(inscripcionRequest.getAnioId())
-                    .orElse(null);
-
-            if (anio == null) {
-                return ResponseEntity
-                        .badRequest()
-                        .body("El año indicado no existe");
+                        .body("La combinación de carrera y año indicada no existe");
             }
 
             // Crear inscripción
             Inscripcion inscripcion = new Inscripcion(
                     nuevo,
-                    carrera,
-                    anio
+                    anioCarrera
             );
 
             // Agregar inscripción al usuario

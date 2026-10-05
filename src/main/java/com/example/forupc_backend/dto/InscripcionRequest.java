@@ -2,25 +2,16 @@ package com.example.forupc_backend.dto;
 
 public class InscripcionRequest {
 
-    private Integer carreraId;
-    private Integer anioId;
+    private Integer anioCarreraId;
 
     public InscripcionRequest() {
     }
 
-    public Integer getCarreraId() {
-        return carreraId;
+    public Integer getAnioCarreraId() {
+        return anioCarreraId;
     }
 
-    public void setCarreraId(Integer carreraId) {
-        this.carreraId = carreraId;
-    }
-
-    public Integer getAnioId() {
-        return anioId;
-    }
-
-    public void setAnioId(Integer anioId) {
-        this.anioId = anioId;
+    public void setAnioCarreraId(Integer anioCarreraId) {
+        this.anioCarreraId = anioCarreraId;
     }
 }

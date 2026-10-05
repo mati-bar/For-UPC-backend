@@ -7,7 +7,7 @@ import jakarta.persistence.*;
         name = "inscripcion",
         uniqueConstraints = {
                 @UniqueConstraint(
-                        columnNames = {"usuario_id", "carrera_id"}
+                        columnNames = {"usuario_id", "anio_carrera_id"}
                 )
         }
 )
@@ -22,24 +22,18 @@ public class Inscripcion {
     private Usuario usuario;
 
     @ManyToOne
-    @JoinColumn(name = "carrera_id", nullable = false)
-    private Carrera carrera;
-
-    @ManyToOne
-    @JoinColumn(name = "anio_id", nullable = false)
-    private Anio anio;
+    @JoinColumn(name = "anio_carrera_id", nullable = false)
+    private AnioCarrera anioCarrera;
 
     public Inscripcion() {
     }
 
     public Inscripcion(
             Usuario usuario,
-            Carrera carrera,
-            Anio anio
+            AnioCarrera anioCarrera
     ) {
         this.usuario = usuario;
-        this.carrera = carrera;
-        this.anio = anio;
+        this.anioCarrera = anioCarrera;
     }
 
     public Integer getId() {
@@ -58,19 +52,11 @@ public class Inscripcion {
         this.usuario = usuario;
     }
 
-    public Carrera getCarrera() {
-        return carrera;
+    public AnioCarrera getAnioCarrera() {
+        return anioCarrera;
     }
 
-    public void setCarrera(Carrera carrera) {
-        this.carrera = carrera;
-    }
-
-    public Anio getAnio() {
-        return anio;
-    }
-
-    public void setAnio(Anio anio) {
-        this.anio = anio;
+    public void setAnioCarrera(AnioCarrera anioCarrera) {
+        this.anioCarrera = anioCarrera;
     }
 }
