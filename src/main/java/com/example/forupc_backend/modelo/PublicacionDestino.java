@@ -3,18 +3,7 @@ package com.example.forupc_backend.modelo;
 import jakarta.persistence.*;
 
 @Entity
-@Table(
-        name = "publicacion_destino",
-        uniqueConstraints = {
-                @UniqueConstraint(
-                        columnNames = {
-                                "publicacion_id",
-                                "carrera_id",
-                                "anio_id"
-                        }
-                )
-        }
-)
+@Table(name = "publicacion_destino")
 public class PublicacionDestino {
 
     @Id
@@ -26,24 +15,14 @@ public class PublicacionDestino {
     private Publicacion publicacion;
 
     @ManyToOne
-    @JoinColumn(name = "carrera_id", nullable = false)
+    @JoinColumn(name = "carrera_id")
     private Carrera carrera;
 
     @ManyToOne
-    @JoinColumn(name = "anio_id", nullable = false)
+    @JoinColumn(name = "anio_id")
     private Anio anio;
 
     public PublicacionDestino() {
-    }
-
-    public PublicacionDestino(
-            Publicacion publicacion,
-            Carrera carrera,
-            Anio anio
-    ) {
-        this.publicacion = publicacion;
-        this.carrera = carrera;
-        this.anio = anio;
     }
 
     public Integer getId() {

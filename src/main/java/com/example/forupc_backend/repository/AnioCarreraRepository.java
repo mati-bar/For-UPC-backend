@@ -7,9 +7,12 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 import java.util.Optional;
 
-public interface AnioCarreraRepository extends JpaRepository<AnioCarrera, Integer> {
+public interface AnioCarreraRepository
+        extends JpaRepository<AnioCarrera, Integer> {
 
-    List<AnioCarrera> findByCarrera(Carrera carrera);
+    List<AnioCarrera> findByCarreraOrderByAnioNumeroAsc(
+            Carrera carrera
+    );
 
     Optional<AnioCarrera> findByCarreraIdAndAnioId(
             Integer carreraId,

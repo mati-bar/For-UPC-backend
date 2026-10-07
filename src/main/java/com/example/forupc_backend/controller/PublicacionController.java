@@ -1,19 +1,24 @@
 package com.example.forupc_backend.controller;
 
-import com.example.forupc_backend.modelo.Anio;
 import com.example.forupc_backend.modelo.Carrera;
+import com.example.forupc_backend.modelo.Anio;
+import com.example.forupc_backend.modelo.DuracionPublicacion;
 import com.example.forupc_backend.modelo.Publicacion;
-import com.example.forupc_backend.modelo.PublicacionDestino;
+import com.example.forupc_backend.modelo.PublicacionRequest;
 import com.example.forupc_backend.repository.AnioRepository;
 import com.example.forupc_backend.repository.CarreraRepository;
 import com.example.forupc_backend.repository.PublicacionRepository;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/publicaciones")
+@CrossOrigin(origins = "*")
 public class PublicacionController {
 
     private final PublicacionRepository publicacionRepository;
@@ -30,78 +35,129 @@ public class PublicacionController {
         this.anioRepository = anioRepository;
     }
 
-    // =========================
-    // OBTENER TODAS
-    // =========================
-
     @GetMapping
-    public ResponseEntity<List<Publicacion>> obtenerTodas() {
+    public ResponseEntity<List<Publicacion>> listarPublicaciones() {
 
         return ResponseEntity.ok(
-                publicacionRepository.findAll()
+                publicacionRepository.findAllByOrderByFechaDesc()
         );
     }
 
-    // =========================
-    // OBTENER POR ID
-    // =========================
-
     @GetMapping("/{id}")
-    public ResponseEntity<?> obtenerPorId(
+    public ResponseEntity<Publicacion> obtenerPublicacion(
             @PathVariable Integer id
     ) {
 
-        Publicacion publicacion = publicacionRepository
-                .findById(id)
-                .orElse(null);
+        Optional<Publicacion> publicacion =
+                publicacionRepository.findById(id);
 
-        if (publicacion == null) {
-            return ResponseEntity
-                    .notFound()
-                    .build();
+        if (publicacion.isPresent()) {
+            return ResponseEntity.ok(publicacion.get());
         }
 
-        return ResponseEntity.ok(publicacion);
+        return ResponseEntity.notFound().build();
     }
-
-    // =========================
-    // CREAR PUBLICACION
-    // =========================
 
     @PostMapping
-    public ResponseEntity<?> crear(
-            @RequestBody Publicacion publicacion
+    public ResponseEntity<?> crearPublicacion(
+            @RequestBody PublicacionRequest request
     ) {
 
-        if (publicacion.getTitulo() == null ||
-                publicacion.getTitulo().isBlank()) {
+        if (request.getTitulo() == null ||
+                request.getTitulo().isBlank()) {
 
             return ResponseEntity
                     .badRequest()
-                    .body("El título es obligatorio");
+                    .body("El título es obligatorio.");
         }
 
-        if (publicacion.getContenido() == null ||
-                publicacion.getContenido().isBlank()) {
+        if (request.getMensaje() == null ||
+                request.getMensaje().isBlank()) {
 
             return ResponseEntity
                     .badRequest()
-                    .body("El contenido es obligatorio");
+                    .body("El mensaje es obligatorio.");
         }
 
-        Publicacion nueva = publicacionRepository.save(publicacion);
+        Publicacion publicacion = new Publicacion();
+
+        publicacion.setTitulo(request.getTitulo());
+        publicacion.setMensaje(request.getMensaje());
+
+        LocalDateTime ahora = LocalDateTime.now();
+
+        publicacion.setFecha(ahora);
+
+        if (request.getDuracion() == null) {
+
+            publicacion.setFechaExpiracion(null);
+
+        } else {
+
+            switch (request.getDuracion()) {
+
+                case HORA:
+                    publicacion.setFechaExpiracion(
+                            ahora.plusHours(1)
+                    );
+                    break;
+
+                case DIA:
+                    publicacion.setFechaExpiracion(
+                            ahora.plusDays(1)
+                    );
+                    break;
+
+                case SEMANA:
+                    publicacion.setFechaExpiracion(
+                            ahora.plusWeeks(1)
+                    );
+                    break;
+
+                case SIN_VENCIMIENTO:
+                    publicacion.setFechaExpiracion(null);
+                    break;
+            }
+        }
+
+        if (request.getCarreraId() != null) {
+
+            Optional<Carrera> carrera =
+                    carreraRepository.findById(request.getCarreraId());
+
+            if (carrera.isEmpty()) {
+                return ResponseEntity
+                        .badRequest()
+                        .body("La carrera indicada no existe.");
+            }
+
+            publicacion.setCarrera(carrera.get());
+        }
+
+        if (request.getAnioId() != null) {
+
+            Optional<Anio> anio =
+                    anioRepository.findById(request.getAnioId());
+
+            if (anio.isEmpty()) {
+                return ResponseEntity
+                        .badRequest()
+                        .body("El año indicado no existe.");
+            }
+
+            publicacion.setAnio(anio.get());
+        }
+
+        Publicacion guardada =
+                publicacionRepository.save(publicacion);
 
         return ResponseEntity
-                .status(201)
-                .body(nueva);
+                .status(HttpStatus.CREATED)
+                .body(guardada);
     }
 
-    // =========================
-    // ELIMINAR
-    // =========================
-
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> eliminar(
+    public ResponseEntity<?> eliminarPublicacion(
             @PathVariable Integer id
     ) {
 
@@ -115,66 +171,7 @@ public class PublicacionController {
         publicacionRepository.deleteById(id);
 
         return ResponseEntity.ok(
-                "Publicación eliminada correctamente"
+                "Publicación eliminada correctamente."
         );
-    }
-
-    // =========================
-    // AGREGAR DESTINO
-    // =========================
-
-    @PostMapping("/{publicacionId}/destinos")
-    public ResponseEntity<?> agregarDestino(
-            @PathVariable Integer publicacionId,
-            @RequestParam Integer carreraId,
-            @RequestParam Integer anioId
-    ) {
-
-        Publicacion publicacion = publicacionRepository
-                .findById(publicacionId)
-                .orElse(null);
-
-        if (publicacion == null) {
-
-            return ResponseEntity
-                    .notFound()
-                    .build();
-        }
-
-        Carrera carrera = carreraRepository
-                .findById(carreraId)
-                .orElse(null);
-
-        if (carrera == null) {
-
-            return ResponseEntity
-                    .badRequest()
-                    .body("La carrera no existe");
-        }
-
-        Anio anio = anioRepository
-                .findById(anioId)
-                .orElse(null);
-
-        if (anio == null) {
-
-            return ResponseEntity
-                    .badRequest()
-                    .body("El año no existe");
-        }
-
-        PublicacionDestino destino = new PublicacionDestino(
-                publicacion,
-                carrera,
-                anio
-        );
-
-        publicacion.agregarDestino(destino);
-
-        publicacionRepository.save(publicacion);
-
-        return ResponseEntity
-                .status(201)
-                .body(destino);
     }
 }

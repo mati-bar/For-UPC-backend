@@ -14,14 +14,22 @@ public class Publicacion {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @Column(nullable = false)
     private String titulo;
 
-    @Column(columnDefinition = "TEXT", nullable = false)
-    private String contenido;
+    @Column(columnDefinition = "TEXT")
+    private String mensaje;
 
-    @Column(name = "fecha_publicacion", nullable = false)
-    private LocalDateTime fechaPublicacion;
+    private LocalDateTime fecha;
+
+    private LocalDateTime fechaExpiracion;
+
+    @ManyToOne
+    @JoinColumn(name = "carrera_id")
+    private Carrera carrera;
+
+    @ManyToOne
+    @JoinColumn(name = "anio_id")
+    private Anio anio;
 
     @OneToMany(
             mappedBy = "publicacion",
@@ -31,16 +39,6 @@ public class Publicacion {
     private List<PublicacionDestino> destinos = new ArrayList<>();
 
     public Publicacion() {
-    }
-
-    public Publicacion(
-            String titulo,
-            String contenido,
-            LocalDateTime fechaPublicacion
-    ) {
-        this.titulo = titulo;
-        this.contenido = contenido;
-        this.fechaPublicacion = fechaPublicacion;
     }
 
     public Integer getId() {
@@ -59,20 +57,44 @@ public class Publicacion {
         this.titulo = titulo;
     }
 
-    public String getContenido() {
-        return contenido;
+    public String getMensaje() {
+        return mensaje;
     }
 
-    public void setContenido(String contenido) {
-        this.contenido = contenido;
+    public void setMensaje(String mensaje) {
+        this.mensaje = mensaje;
     }
 
-    public LocalDateTime getFechaPublicacion() {
-        return fechaPublicacion;
+    public LocalDateTime getFecha() {
+        return fecha;
     }
 
-    public void setFechaPublicacion(LocalDateTime fechaPublicacion) {
-        this.fechaPublicacion = fechaPublicacion;
+    public void setFecha(LocalDateTime fecha) {
+        this.fecha = fecha;
+    }
+
+    public LocalDateTime getFechaExpiracion() {
+        return fechaExpiracion;
+    }
+
+    public void setFechaExpiracion(LocalDateTime fechaExpiracion) {
+        this.fechaExpiracion = fechaExpiracion;
+    }
+
+    public Carrera getCarrera() {
+        return carrera;
+    }
+
+    public void setCarrera(Carrera carrera) {
+        this.carrera = carrera;
+    }
+
+    public Anio getAnio() {
+        return anio;
+    }
+
+    public void setAnio(Anio anio) {
+        this.anio = anio;
     }
 
     public List<PublicacionDestino> getDestinos() {
@@ -81,15 +103,5 @@ public class Publicacion {
 
     public void setDestinos(List<PublicacionDestino> destinos) {
         this.destinos = destinos;
-    }
-
-    public void agregarDestino(PublicacionDestino destino) {
-        destinos.add(destino);
-        destino.setPublicacion(this);
-    }
-
-    public void eliminarDestino(PublicacionDestino destino) {
-        destinos.remove(destino);
-        destino.setPublicacion(null);
     }
 }
