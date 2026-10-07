@@ -63,6 +63,7 @@ public class PublicacionController {
             @RequestBody PublicacionRequest request
     ) {
 
+
         if (request.getTitulo() == null ||
                 request.getTitulo().isBlank()) {
 
