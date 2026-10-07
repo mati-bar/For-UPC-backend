@@ -23,6 +23,18 @@ public class Publicacion {
 
     private LocalDateTime fechaExpiracion;
 
+    @Column(nullable = false)
+    private boolean urgente = false;
+
+    @Column(name = "imagen_url")
+    private String imagenUrl;
+
+    @Column(name = "archivo_url")
+    private String archivoUrl;
+
+    @Column(name = "archivo_nombre")
+    private String archivoNombre;
+
     @ManyToOne
     @JoinColumn(name = "carrera_id")
     private Carrera carrera;
@@ -79,6 +91,38 @@ public class Publicacion {
 
     public void setFechaExpiracion(LocalDateTime fechaExpiracion) {
         this.fechaExpiracion = fechaExpiracion;
+    }
+
+    public boolean isUrgente() {
+        return urgente;
+    }
+
+    public void setUrgente(boolean urgente) {
+        this.urgente = urgente;
+    }
+
+    public String getImagenUrl() {
+        return imagenUrl;
+    }
+
+    public void setImagenUrl(String imagenUrl) {
+        this.imagenUrl = imagenUrl;
+    }
+
+    public String getArchivoUrl() {
+        return archivoUrl;
+    }
+
+    public void setArchivoUrl(String archivoUrl) {
+        this.archivoUrl = archivoUrl;
+    }
+
+    public String getArchivoNombre() {
+        return archivoNombre;
+    }
+
+    public void setArchivoNombre(String archivoNombre) {
+        this.archivoNombre = archivoNombre;
     }
 
     public Carrera getCarrera() {

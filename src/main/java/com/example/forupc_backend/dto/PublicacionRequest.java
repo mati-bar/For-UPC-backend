@@ -4,11 +4,10 @@ public class PublicacionRequest {
 
     private String titulo;
     private String mensaje;
-
+    private DuracionPublicacion duracion;
     private Integer carreraId;
     private Integer anioId;
-
-    private DuracionPublicacion duracion;
+    private boolean urgente;
 
     public PublicacionRequest() {
     }
@@ -29,6 +28,14 @@ public class PublicacionRequest {
         this.mensaje = mensaje;
     }
 
+    public DuracionPublicacion getDuracion() {
+        return duracion;
+    }
+
+    public void setDuracion(DuracionPublicacion duracion) {
+        this.duracion = duracion;
+    }
+
     public Integer getCarreraId() {
         return carreraId;
     }
@@ -45,11 +52,11 @@ public class PublicacionRequest {
         this.anioId = anioId;
     }
 
-    public DuracionPublicacion getDuracion() {
-        return duracion;
+    public boolean isUrgente() {
+        return urgente;
     }
 
-    public void setDuracion(DuracionPublicacion duracion) {
-        this.duracion = duracion;
+    public void setUrgente(boolean urgente) {
+        this.urgente = urgente;
     }
 }
