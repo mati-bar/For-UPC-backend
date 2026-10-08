@@ -112,6 +112,8 @@ public class SupabaseStorageService {
 
         } catch (Exception e) {
 
+            e.printStackTrace();
+
             throw new RuntimeException(
                     "No se pudo subir el archivo a Supabase Storage.",
                     e

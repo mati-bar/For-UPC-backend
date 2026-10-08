@@ -5,7 +5,7 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-
+import io.jsonwebtoken.io.Decoders;
 import javax.crypto.SecretKey;
 import java.util.Date;
 
@@ -18,7 +18,8 @@ public class JwtService {
     private static final long EXPIRATION_MS = 86_400_000; // 24 horas
 
     private SecretKey getKey() {
-        return Keys.hmacShaKeyFor(secretKey.getBytes());
+        byte[] keyBytes = Decoders.BASE64.decode(secretKey);
+        return Keys.hmacShaKeyFor(keyBytes);
     }
 
     public String generarToken(String email, String rol) {
