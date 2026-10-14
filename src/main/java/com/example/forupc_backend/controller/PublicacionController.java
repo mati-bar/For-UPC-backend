@@ -3,11 +3,14 @@ package com.example.forupc_backend.controller;
 
 import com.example.forupc_backend.modelo.Anio;
 import com.example.forupc_backend.modelo.Carrera;
+import com.example.forupc_backend.modelo.DuracionPublicacion;
 import com.example.forupc_backend.modelo.Publicacion;
 import com.example.forupc_backend.modelo.PublicacionRequest;
+
 import com.example.forupc_backend.repository.AnioRepository;
 import com.example.forupc_backend.repository.CarreraRepository;
 import com.example.forupc_backend.repository.PublicacionRepository;
+
 import com.example.forupc_backend.service.SupabaseStorageService;
 
 import org.springframework.http.HttpStatus;
@@ -24,7 +27,6 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/publicaciones")
-@CrossOrigin(origins = "*")
 public class PublicacionController {
 
     private final PublicacionRepository publicacionRepository;
@@ -47,195 +49,78 @@ public class PublicacionController {
         this.jsonMapper = jsonMapper;
     }
 
+    // =====================================
     // LISTAR PUBLICACIONES
+    // =====================================
+
     @GetMapping
     public ResponseEntity<List<Publicacion>> listarPublicaciones() {
-
         return ResponseEntity.ok(
                 publicacionRepository.findAllByOrderByFechaDesc()
         );
     }
 
+    // =====================================
     // OBTENER PUBLICACION POR ID
+    // =====================================
+
     @GetMapping("/{id}")
     public ResponseEntity<Publicacion> obtenerPublicacion(
             @PathVariable Integer id
     ) {
-
-        Optional<Publicacion> publicacion =
-                publicacionRepository.findById(id);
-
-        return publicacion
+        return publicacionRepository.findById(id)
                 .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+                .orElseGet(() ->
+                        ResponseEntity.notFound().build()
+                );
     }
 
+    // =====================================
     // CREAR PUBLICACION
+    // =====================================
+
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> crearPublicacion(
 
             @RequestPart("datos") String datos,
 
-            @RequestPart(
-                    value = "imagen",
-                    required = false
-            )
+            @RequestPart(value = "imagen", required = false)
             MultipartFile imagen,
 
-            @RequestPart(
-                    value = "archivo",
-                    required = false
-            )
+            @RequestPart(value = "archivo", required = false)
             MultipartFile archivo
     ) {
-
         try {
 
-            // CONVERTIR TEXTO JSON A OBJETO JAVA
-            PublicacionRequest request;
+            PublicacionRequest request = convertirDatos(datos);
 
-            try {
-                request = jsonMapper.readValue(
-                        datos,
-                        PublicacionRequest.class
-                );
-
-            } catch (Exception e) {
-
-                return ResponseEntity
-                        .badRequest()
-                        .body("El campo datos no contiene un JSON válido.");
+            String error = validarDatos(request);
+            if (error != null) {
+                return ResponseEntity.badRequest().body(error);
             }
 
-            if (request == null) {
-                return ResponseEntity
-                        .badRequest()
-                        .body("Los datos de la publicación son obligatorios.");
-            }
-
-            // VALIDAR TITULO
-            if (request.getTitulo() == null ||
-                    request.getTitulo().isBlank()) {
-
-                return ResponseEntity
-                        .badRequest()
-                        .body("El título es obligatorio.");
-            }
-
-            // VALIDAR MENSAJE
-            if (request.getMensaje() == null ||
-                    request.getMensaje().isBlank()) {
-
-                return ResponseEntity
-                        .badRequest()
-                        .body("El mensaje es obligatorio.");
-            }
-
-            // CREAR PUBLICACION
             Publicacion publicacion = new Publicacion();
 
-            publicacion.setTitulo(request.getTitulo());
-            publicacion.setMensaje(request.getMensaje());
-            publicacion.setUrgente(request.isUrgente());
+            publicacion.setFecha(LocalDateTime.now());
 
-            LocalDateTime ahora = LocalDateTime.now();
+            aplicarDatos(publicacion, request, true);
 
-            publicacion.setFecha(ahora);
+            if (request.getCarreraId() != null &&
+                    publicacion.getCarrera() == null) {
 
-            // CONFIGURAR DURACION
-            if (request.getDuracion() == null) {
-
-                publicacion.setFechaExpiracion(null);
-
-            } else {
-
-                switch (request.getDuracion()) {
-
-                    case HORA:
-                        publicacion.setFechaExpiracion(
-                                ahora.plusHours(1)
-                        );
-                        break;
-
-                    case DIA:
-                        publicacion.setFechaExpiracion(
-                                ahora.plusDays(1)
-                        );
-                        break;
-
-                    case SEMANA:
-                        publicacion.setFechaExpiracion(
-                                ahora.plusWeeks(1)
-                        );
-                        break;
-
-                    case SIN_VENCIMIENTO:
-                        publicacion.setFechaExpiracion(null);
-                        break;
-                }
+                return ResponseEntity.badRequest()
+                        .body("La carrera indicada no existe.");
             }
 
-            // ASOCIAR CARRERA
-            if (request.getCarreraId() != null) {
+            if (request.getAnioId() != null &&
+                    publicacion.getAnio() == null) {
 
-                Optional<Carrera> carrera =
-                        carreraRepository.findById(
-                                request.getCarreraId()
-                        );
-
-                if (carrera.isEmpty()) {
-
-                    return ResponseEntity
-                            .badRequest()
-                            .body("La carrera indicada no existe.");
-                }
-
-                publicacion.setCarrera(carrera.get());
+                return ResponseEntity.badRequest()
+                        .body("El año indicado no existe.");
             }
 
-            // ASOCIAR AÑO
-            if (request.getAnioId() != null) {
+            subirArchivos(publicacion, imagen, archivo);
 
-                Optional<Anio> anio =
-                        anioRepository.findById(
-                                request.getAnioId()
-                        );
-
-                if (anio.isEmpty()) {
-
-                    return ResponseEntity
-                            .badRequest()
-                            .body("El año indicado no existe.");
-                }
-
-                publicacion.setAnio(anio.get());
-            }
-
-            // SUBIR IMAGEN A SUPABASE
-            if (imagen != null && !imagen.isEmpty()) {
-
-                String imagenUrl =
-                        storageService.subirImagen(imagen);
-
-                publicacion.setImagenUrl(imagenUrl);
-            }
-
-            // SUBIR DOCUMENTO A SUPABASE
-            if (archivo != null && !archivo.isEmpty()) {
-
-                SupabaseStorageService.ArchivoSubido archivoSubido =
-                        storageService.subirDocumento(archivo);
-
-                publicacion.setArchivoUrl(
-                        archivoSubido.url()
-                );
-
-                publicacion.setArchivoNombre(
-                        archivoSubido.nombre()
-                );
-            }
-
-            // GUARDAR EN POSTGRESQL
             Publicacion guardada =
                     publicacionRepository.save(publicacion);
 
@@ -245,8 +130,7 @@ public class PublicacionController {
 
         } catch (IllegalArgumentException e) {
 
-            return ResponseEntity
-                    .badRequest()
+            return ResponseEntity.badRequest()
                     .body(e.getMessage());
 
         } catch (Exception e) {
@@ -257,17 +141,98 @@ public class PublicacionController {
         }
     }
 
+    // =====================================
+    // EDITAR PUBLICACION
+    // SOLO ADMINISTRADOR (SECURITYCONFIG)
+    // =====================================
+
+    @PutMapping(
+            value = "/{id}",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE
+    )
+    public ResponseEntity<?> editarPublicacion(
+
+            @PathVariable Integer id,
+
+            @RequestPart("datos") String datos,
+
+            @RequestPart(value = "imagen", required = false)
+            MultipartFile imagen,
+
+            @RequestPart(value = "archivo", required = false)
+            MultipartFile archivo
+    ) {
+        try {
+
+            Optional<Publicacion> encontrada =
+                    publicacionRepository.findById(id);
+
+            if (encontrada.isEmpty()) {
+                return ResponseEntity.notFound().build();
+            }
+
+            PublicacionRequest request = convertirDatos(datos);
+
+            String error = validarDatos(request);
+            if (error != null) {
+                return ResponseEntity.badRequest().body(error);
+            }
+
+            Publicacion publicacion = encontrada.get();
+
+            // Validar las relaciones antes de modificar datos
+            if (request.getCarreraId() != null &&
+                    !carreraRepository.existsById(
+                            request.getCarreraId())) {
+
+                return ResponseEntity.badRequest()
+                        .body("La carrera indicada no existe.");
+            }
+
+            if (request.getAnioId() != null &&
+                    !anioRepository.existsById(
+                            request.getAnioId())) {
+
+                return ResponseEntity.badRequest()
+                        .body("El año indicado no existe.");
+            }
+
+            // La fecha original no se modifica
+            aplicarDatos(publicacion, request, false);
+
+            // Si no se envían nuevos archivos,
+            // se mantienen las URLs anteriores.
+            subirArchivos(publicacion, imagen, archivo);
+
+            Publicacion actualizada =
+                    publicacionRepository.save(publicacion);
+
+            return ResponseEntity.ok(actualizada);
+
+        } catch (IllegalArgumentException e) {
+
+            return ResponseEntity.badRequest()
+                    .body(e.getMessage());
+
+        } catch (Exception e) {
+
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error al editar la publicación.");
+        }
+    }
+
+    // =====================================
     // ELIMINAR PUBLICACION
+    // =====================================
+
     @DeleteMapping("/{id}")
     public ResponseEntity<?> eliminarPublicacion(
             @PathVariable Integer id
     ) {
 
         if (!publicacionRepository.existsById(id)) {
-
-            return ResponseEntity
-                    .notFound()
-                    .build();
+            return ResponseEntity.notFound().build();
         }
 
         publicacionRepository.deleteById(id);
@@ -275,5 +240,179 @@ public class PublicacionController {
         return ResponseEntity.ok(
                 "Publicación eliminada correctamente."
         );
+    }
+
+    // =====================================
+    // CONVERTIR JSON
+    // =====================================
+
+    private PublicacionRequest convertirDatos(String datos) {
+
+        if (datos == null || datos.isBlank()) {
+            throw new IllegalArgumentException(
+                    "Los datos de la publicación son obligatorios."
+            );
+        }
+
+        try {
+
+            PublicacionRequest request =
+                    jsonMapper.readValue(
+                            datos,
+                            PublicacionRequest.class
+                    );
+
+            if (request == null) {
+                throw new IllegalArgumentException(
+                        "Los datos de la publicación son obligatorios."
+                );
+            }
+
+            return request;
+
+        } catch (IllegalArgumentException e) {
+            throw e;
+
+        } catch (Exception e) {
+            throw new IllegalArgumentException(
+                    "El campo datos no contiene un JSON válido."
+            );
+        }
+    }
+
+    // =====================================
+    // VALIDACIONES
+    // =====================================
+
+    private String validarDatos(PublicacionRequest request) {
+
+        if (request == null) {
+            return "Los datos de la publicación son obligatorios.";
+        }
+
+        if (request.getTitulo() == null ||
+                request.getTitulo().isBlank()) {
+
+            return "El título es obligatorio.";
+        }
+
+        if (request.getMensaje() == null ||
+                request.getMensaje().isBlank()) {
+
+            return "El mensaje es obligatorio.";
+        }
+
+        return null;
+    }
+
+    // =====================================
+    // APLICAR DATOS DE LA PUBLICACION
+    // =====================================
+
+    private void aplicarDatos(
+            Publicacion publicacion,
+            PublicacionRequest request,
+            boolean creacion
+    ) {
+
+        publicacion.setTitulo(request.getTitulo().trim());
+        publicacion.setMensaje(request.getMensaje());
+        publicacion.setUrgente(request.isUrgente());
+
+        // En creación, la fecha ya está establecida.
+        // En edición, mantenemos esa fecha original.
+
+        if (request.getDuracion() != null) {
+
+            LocalDateTime referencia = LocalDateTime.now();
+
+            publicacion.setFechaExpiracion(
+                    calcularExpiracion(
+                            referencia,
+                            request.getDuracion()
+                    )
+            );
+
+        } else if (creacion) {
+
+            publicacion.setFechaExpiracion(null);
+        }
+
+        // Carrera: null significa sin carrera específica.
+        if (request.getCarreraId() == null) {
+
+            publicacion.setCarrera(null);
+
+        } else {
+
+            Carrera carrera = carreraRepository
+                    .findById(request.getCarreraId())
+                    .orElse(null);
+
+            publicacion.setCarrera(carrera);
+        }
+
+        // Año: null significa sin año específico.
+        if (request.getAnioId() == null) {
+
+            publicacion.setAnio(null);
+
+        } else {
+
+            Anio anio = anioRepository
+                    .findById(request.getAnioId())
+                    .orElse(null);
+
+            publicacion.setAnio(anio);
+        }
+    }
+
+    // =====================================
+    // CALCULAR FECHA DE EXPIRACION
+    // =====================================
+
+    private LocalDateTime calcularExpiracion(
+            LocalDateTime referencia,
+            DuracionPublicacion duracion
+    ) {
+
+        return switch (duracion) {
+
+            case HORA -> referencia.plusHours(1);
+
+            case DIA -> referencia.plusDays(1);
+
+            case SEMANA -> referencia.plusWeeks(1);
+
+            case SIN_VENCIMIENTO -> null;
+        };
+    }
+
+    // =====================================
+    // SUBIR O REEMPLAZAR ARCHIVOS
+    // =====================================
+
+    private void subirArchivos(
+            Publicacion publicacion,
+            MultipartFile imagen,
+            MultipartFile archivo
+    ) {
+
+        if (imagen != null && !imagen.isEmpty()) {
+
+            String imagenUrl =
+                    storageService.subirImagen(imagen);
+
+            publicacion.setImagenUrl(imagenUrl);
+        }
+
+        if (archivo != null && !archivo.isEmpty()) {
+
+            SupabaseStorageService.ArchivoSubido subido =
+                    storageService.subirDocumento(archivo);
+
+            publicacion.setArchivoUrl(subido.url());
+            publicacion.setArchivoNombre(subido.nombre());
+        }
     }
 }

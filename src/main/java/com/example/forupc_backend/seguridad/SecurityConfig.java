@@ -161,6 +161,10 @@ public class SecurityConfig {
                         // =====================================
                         // ADMINISTRAR PUBLICACIONES
                         // =====================================
+                        .requestMatchers(
+                                HttpMethod.PUT,
+                                "/publicaciones/**"
+                        ).hasRole("ADMINISTRADOR")
 
                         .requestMatchers(
                                 HttpMethod.POST,
