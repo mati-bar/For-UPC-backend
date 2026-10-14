@@ -1,3 +1,4 @@
+
 package com.example.forupc_backend.controller;
 
 import com.example.forupc_backend.dto.*;
@@ -14,6 +15,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 
 @RestController
 @RequestMapping("/auth")
@@ -36,15 +39,30 @@ public class AuthController {
         this.anioCarreraRepository = anioCarreraRepository;
     }
 
-
-    // =========================
-    // REGISTRO
-    // =========================
+    // =====================================
+    // REGISTRO DE ESTUDIANTES
+    // =====================================
 
     @PostMapping("/registro")
     public ResponseEntity<?> registrar(
             @RequestBody RegistroRequest datos
     ) {
+
+        // Verificar campos obligatorios
+        if (datos == null ||
+                datos.getEmail() == null ||
+                datos.getEmail().isBlank() ||
+                datos.getNombre() == null ||
+                datos.getNombre().isBlank() ||
+                datos.getApellido() == null ||
+                datos.getApellido().isBlank() ||
+                datos.getPassword() == null ||
+                datos.getPassword().isBlank()) {
+
+            return ResponseEntity
+                    .badRequest()
+                    .body("Todos los datos personales son obligatorios");
+        }
 
         // Verificar si ya existe el email
         if (usuarioRepositorio
@@ -55,7 +73,6 @@ public class AuthController {
                     .status(409)
                     .body("Ya existe un usuario con ese email");
         }
-
 
         // Verificar que tenga al menos una inscripción
         if (datos.getInscripciones() == null ||
@@ -68,6 +85,9 @@ public class AuthController {
                     );
         }
 
+        // Guardaremos los ID de las carreras seleccionadas
+        // para impedir que una misma carrera se repita.
+        Set<Integer> carrerasSeleccionadas = new HashSet<>();
 
         // Crear usuario
         Usuario nuevo = new Usuario(
@@ -78,19 +98,28 @@ public class AuthController {
                 Rol.ESTUDIANTE
         );
 
-
-        // Crear inscripciones
+        // Validar y preparar todas las inscripciones
         for (InscripcionRequest inscripcionRequest :
                 datos.getInscripciones()) {
 
+            // Verificar que la inscripción tenga un ID
+            if (inscripcionRequest == null ||
+                    inscripcionRequest.getAnioCarreraId() == null) {
+
+                return ResponseEntity
+                        .badRequest()
+                        .body(
+                                "Cada inscripción debe indicar una carrera y un año"
+                        );
+            }
+
+            // Buscar combinación carrera + año
             AnioCarrera anioCarrera =
                     anioCarreraRepository
                             .findById(
-                                    inscripcionRequest
-                                            .getAnioCarreraId()
+                                    inscripcionRequest.getAnioCarreraId()
                             )
                             .orElse(null);
-
 
             // Verificar que exista la combinación
             if (anioCarrera == null) {
@@ -102,6 +131,19 @@ public class AuthController {
                         );
             }
 
+            // Obtener el ID de la carrera
+            Integer carreraId =
+                    anioCarrera.getCarrera().getId();
+
+            // Comprobar que la carrera no esté repetida
+            if (!carrerasSeleccionadas.add(carreraId)) {
+
+                return ResponseEntity
+                        .badRequest()
+                        .body(
+                                "No podés seleccionar más de un año para la misma carrera"
+                        );
+            }
 
             // Crear inscripción
             Inscripcion inscripcion =
@@ -110,25 +152,22 @@ public class AuthController {
                             anioCarrera
                     );
 
-
-            // Agregar inscripción al usuario
+            // Asociar inscripción al usuario
             nuevo.agregarInscripcion(inscripcion);
         }
 
-
-        // Guardar usuario
+        // Todas las validaciones terminaron correctamente.
+        // Recién ahora guardar el usuario y sus inscripciones.
         usuarioRepositorio.save(nuevo);
-
 
         return ResponseEntity
                 .status(201)
                 .build();
     }
 
-
-    // =========================
+    // =====================================
     // LOGIN
-    // =========================
+    // =====================================
 
     @PostMapping("/login")
     public ResponseEntity<?> login(
@@ -139,7 +178,6 @@ public class AuthController {
                 usuarioRepositorio
                         .findByEmail(datos.getEmail())
                         .orElse(null);
-
 
         if (usuario == null ||
                 !passwordEncoder.matches(
@@ -154,23 +192,20 @@ public class AuthController {
                     );
         }
 
-
         String token =
                 jwtService.generarToken(
                         usuario.getEmail(),
                         usuario.getRol().name()
                 );
 
-
         return ResponseEntity.ok(
                 new TokenResponse(token)
         );
     }
 
-
-    // =========================
+    // =====================================
     // RESET PASSWORD
-    // =========================
+    // =====================================
 
     @PostMapping("/reset-password")
     public ResponseEntity<?> resetearPassword(
@@ -181,7 +216,6 @@ public class AuthController {
                 usuarioRepositorio
                         .findByResetToken(datos.getToken())
                         .orElse(null);
-
 
         if (usuario == null ||
                 usuario.getResetTokenExpiry() == null ||
@@ -195,20 +229,16 @@ public class AuthController {
                     );
         }
 
-
         usuario.setPasswordHash(
                 passwordEncoder.encode(
                         datos.getNewPassword()
                 )
         );
 
-
         usuario.setResetToken(null);
         usuario.setResetTokenExpiry(null);
 
-
         usuarioRepositorio.save(usuario);
-
 
         return ResponseEntity.ok(
                 "Contraseña actualizada correctamente"

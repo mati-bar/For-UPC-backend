@@ -1,9 +1,13 @@
+
 package com.example.forupc_backend.controller;
 
 import com.example.forupc_backend.dto.CarreraRequest;
+import com.example.forupc_backend.dto.AnioCarreraResponse;
+
 import com.example.forupc_backend.modelo.Anio;
 import com.example.forupc_backend.modelo.AnioCarrera;
 import com.example.forupc_backend.modelo.Carrera;
+
 import com.example.forupc_backend.repository.AnioCarreraRepository;
 import com.example.forupc_backend.repository.AnioRepository;
 import com.example.forupc_backend.repository.CarreraRepository;
@@ -32,10 +36,9 @@ public class CarreraController {
         this.anioCarreraRepository = anioCarreraRepository;
     }
 
-
-    // =========================
+    // =====================================
     // OBTENER TODAS LAS CARRERAS
-    // =========================
+    // =====================================
 
     @GetMapping
     public ResponseEntity<List<Carrera>> obtenerTodas() {
@@ -45,10 +48,9 @@ public class CarreraController {
         );
     }
 
-
-    // =========================
+    // =====================================
     // OBTENER CARRERA POR ID
-    // =========================
+    // =====================================
 
     @GetMapping("/{id}")
     public ResponseEntity<?> obtenerPorId(
@@ -60,18 +62,16 @@ public class CarreraController {
                 .orElse(null);
 
         if (carrera == null) {
-            return ResponseEntity
-                    .notFound()
-                    .build();
+            return ResponseEntity.notFound().build();
         }
 
         return ResponseEntity.ok(carrera);
     }
 
-
-    // =========================
+    // =====================================
     // OBTENER AÑOS DE UNA CARRERA
-    // =========================
+    // Incluye el ID de la relación año-carrera
+    // =====================================
 
     @GetMapping("/{id}/anios")
     public ResponseEntity<?> obtenerAnios(
@@ -83,28 +83,32 @@ public class CarreraController {
                 .orElse(null);
 
         if (carrera == null) {
-            return ResponseEntity
-                    .notFound()
-                    .build();
+            return ResponseEntity.notFound().build();
         }
 
         List<AnioCarrera> relaciones =
                 anioCarreraRepository
                         .findByCarreraOrderByAnioNumeroAsc(carrera);
 
-        List<Anio> anios = new ArrayList<>();
+        List<AnioCarreraResponse> respuesta =
+                new ArrayList<>();
 
         for (AnioCarrera relacion : relaciones) {
-            anios.add(relacion.getAnio());
+
+            respuesta.add(
+                    new AnioCarreraResponse(
+                            relacion.getId(),
+                            relacion.getAnio().getNumero()
+                    )
+            );
         }
 
-        return ResponseEntity.ok(anios);
+        return ResponseEntity.ok(respuesta);
     }
 
-
-    // =========================
+    // =====================================
     // CREAR CARRERA
-    // =========================
+    // =====================================
 
     @PostMapping
     public ResponseEntity<?> crear(
@@ -116,9 +120,7 @@ public class CarreraController {
 
             return ResponseEntity
                     .badRequest()
-                    .body(
-                            "El nombre de la carrera es obligatorio"
-                    );
+                    .body("El nombre de la carrera es obligatorio");
         }
 
         if (datos.getCantidadAnios() == null ||
@@ -127,29 +129,21 @@ public class CarreraController {
 
             return ResponseEntity
                     .badRequest()
-                    .body(
-                            "La cantidad de años debe estar entre 1 y 4"
-                    );
+                    .body("La cantidad de años debe estar entre 1 y 4");
         }
-
 
         // Verificar nombre duplicado
         for (Carrera carreraExistente :
                 carreraRepository.findAll()) {
 
             if (carreraExistente.getNombre()
-                    .equalsIgnoreCase(
-                            datos.getNombre().trim()
-                    )) {
+                    .equalsIgnoreCase(datos.getNombre().trim())) {
 
                 return ResponseEntity
                         .status(409)
-                        .body(
-                                "Ya existe una carrera con ese nombre"
-                        );
+                        .body("Ya existe una carrera con ese nombre");
             }
         }
-
 
         // Crear carrera
         Carrera carrera = new Carrera(
@@ -159,8 +153,7 @@ public class CarreraController {
         Carrera carreraGuardada =
                 carreraRepository.save(carrera);
 
-
-        // Crear años automáticamente
+        // Crear relaciones con sus años
         for (int numero = 1;
              numero <= datos.getCantidadAnios();
              numero++) {
@@ -186,21 +179,17 @@ public class CarreraController {
                             anio
                     );
 
-            anioCarreraRepository.save(
-                    anioCarrera
-            );
+            anioCarreraRepository.save(anioCarrera);
         }
-
 
         return ResponseEntity
                 .status(201)
                 .body(carreraGuardada);
     }
 
-
-    // =========================
+    // =====================================
     // EDITAR CARRERA
-    // =========================
+    // =====================================
 
     @PutMapping("/{id}")
     public ResponseEntity<?> editar(
@@ -213,48 +202,35 @@ public class CarreraController {
                 .orElse(null);
 
         if (carrera == null) {
-            return ResponseEntity
-                    .notFound()
-                    .build();
+            return ResponseEntity.notFound().build();
         }
 
-
-        // Verificar nombre
+        // Validar nombre
         if (datos.getNombre() == null ||
                 datos.getNombre().isBlank()) {
 
             return ResponseEntity
                     .badRequest()
-                    .body(
-                            "El nombre de la carrera es obligatorio"
-                    );
+                    .body("El nombre de la carrera es obligatorio");
         }
 
-
-        // Verificar cantidad
+        // Validar cantidad de años
         if (datos.getCantidadAnios() == null ||
                 datos.getCantidadAnios() < 1 ||
                 datos.getCantidadAnios() > 4) {
 
             return ResponseEntity
                     .badRequest()
-                    .body(
-                            "La cantidad de años debe estar entre 1 y 4"
-                    );
+                    .body("La cantidad de años debe estar entre 1 y 4");
         }
 
-
-        // Verificar que el nuevo nombre
-        // no pertenezca a otra carrera
+        // Verificar nombre duplicado
         for (Carrera carreraExistente :
                 carreraRepository.findAll()) {
 
-            if (!carreraExistente.getId()
-                    .equals(id) &&
+            if (!carreraExistente.getId().equals(id) &&
                     carreraExistente.getNombre()
-                            .equalsIgnoreCase(
-                                    datos.getNombre().trim()
-                            )) {
+                            .equalsIgnoreCase(datos.getNombre().trim())) {
 
                 return ResponseEntity
                         .status(409)
@@ -264,32 +240,24 @@ public class CarreraController {
             }
         }
 
-
-        // Cambiar nombre
-        carrera.setNombre(
-                datos.getNombre().trim()
-        );
+        // Actualizar nombre
+        carrera.setNombre(datos.getNombre().trim());
 
         carreraRepository.save(carrera);
-
 
         // Obtener relaciones actuales
         List<AnioCarrera> relacionesActuales =
                 anioCarreraRepository
-                        .findByCarreraOrderByAnioNumeroAsc(
-                                carrera
-                        );
+                        .findByCarreraOrderByAnioNumeroAsc(carrera);
 
-
-        // Agregar los años que falten
+        // Agregar años faltantes
         for (int numero = 1;
              numero <= datos.getCantidadAnios();
              numero++) {
 
             boolean existe = false;
 
-            for (AnioCarrera relacion :
-                    relacionesActuales) {
+            for (AnioCarrera relacion : relacionesActuales) {
 
                 if (relacion.getAnio()
                         .getNumero()
@@ -299,7 +267,6 @@ public class CarreraController {
                     break;
                 }
             }
-
 
             if (!existe) {
 
@@ -318,44 +285,29 @@ public class CarreraController {
                             );
                 }
 
-
                 AnioCarrera nuevaRelacion =
-                        new AnioCarrera(
-                                carrera,
-                                anio
-                        );
+                        new AnioCarrera(carrera, anio);
 
-                anioCarreraRepository.save(
-                        nuevaRelacion
-                );
+                anioCarreraRepository.save(nuevaRelacion);
             }
         }
-
 
         // Eliminar años que ya no correspondan
-        for (AnioCarrera relacion :
-                relacionesActuales) {
+        for (AnioCarrera relacion : relacionesActuales) {
 
             if (relacion.getAnio()
-                    .getNumero()
-                    > datos.getCantidadAnios()) {
+                    .getNumero() > datos.getCantidadAnios()) {
 
-                anioCarreraRepository.delete(
-                        relacion
-                );
+                anioCarreraRepository.delete(relacion);
             }
         }
 
-
-        return ResponseEntity.ok(
-                carrera
-        );
+        return ResponseEntity.ok(carrera);
     }
 
-
-    // =========================
+    // =====================================
     // ELIMINAR CARRERA
-    // =========================
+    // =====================================
 
     @DeleteMapping("/{id}")
     public ResponseEntity<?> eliminar(
@@ -367,35 +319,22 @@ public class CarreraController {
                 .orElse(null);
 
         if (carrera == null) {
-
-            return ResponseEntity
-                    .notFound()
-                    .build();
+            return ResponseEntity.notFound().build();
         }
 
-
-        // Buscar relaciones carrera + año
+        // Obtener relaciones de carrera y año
         List<AnioCarrera> relaciones =
                 anioCarreraRepository
-                        .findByCarreraOrderByAnioNumeroAsc(
-                                carrera
-                        );
-
+                        .findByCarreraOrderByAnioNumeroAsc(carrera);
 
         // Eliminar relaciones
         for (AnioCarrera relacion : relaciones) {
 
-            anioCarreraRepository.delete(
-                    relacion
-            );
+            anioCarreraRepository.delete(relacion);
         }
 
-
         // Eliminar carrera
-        carreraRepository.delete(
-                carrera
-        );
-
+        carreraRepository.delete(carrera);
 
         return ResponseEntity.ok(
                 "Carrera eliminada correctamente"
