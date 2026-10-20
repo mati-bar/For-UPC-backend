@@ -205,6 +205,11 @@ public class SecurityConfig {
                                 "/error"
                         ).permitAll()
 
+                        .requestMatchers(
+                                "/usuarios/me",
+                                "/usuarios/me/inscripciones"
+                        ).authenticated()
+
                         // =====================================
                         // RESTO DE RUTAS
                         // =====================================

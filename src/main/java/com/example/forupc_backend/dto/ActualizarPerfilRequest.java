@@ -1,4 +1,8 @@
+
 package com.example.forupc_backend.dto;
 
-public class ActualizarPerfilRequest {
+public record ActualizarPerfilRequest(
+        String nombre,
+        String apellido
+) {
 }

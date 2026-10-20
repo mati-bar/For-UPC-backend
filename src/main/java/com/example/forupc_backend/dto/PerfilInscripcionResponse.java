@@ -1,4 +1,10 @@
+
 package com.example.forupc_backend.dto;
 
-public class PerfilInscripcionResponse {
+public record PerfilInscripcionResponse(
+        Integer anioCarreraId,
+        Integer carreraId,
+        String carrera,
+        Integer numero
+) {
 }

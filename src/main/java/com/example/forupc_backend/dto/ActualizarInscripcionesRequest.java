@@ -1,4 +1,8 @@
 package com.example.forupc_backend.dto;
 
-public class ActualizarInscripcionesRequest {
+import java.util.List;
+
+public record ActualizarInscripcionesRequest(
+        List<Integer> anioCarreraIds
+) {
 }
