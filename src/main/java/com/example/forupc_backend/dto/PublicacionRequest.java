@@ -1,13 +1,15 @@
-package com.example.forupc_backend.modelo;
+package com.example.forupc_backend.dto;
+
+import java.util.List;
+import com.example.forupc_backend.modelo.DuracionPublicacion;
 
 public class PublicacionRequest {
 
     private String titulo;
     private String mensaje;
     private DuracionPublicacion duracion;
-    private Integer carreraId;
-    private Integer anioId;
     private boolean urgente;
+    private List<DestinoRequest> inscripciones;
 
     public PublicacionRequest() {
     }
@@ -36,27 +38,35 @@ public class PublicacionRequest {
         this.duracion = duracion;
     }
 
-    public Integer getCarreraId() {
-        return carreraId;
-    }
-
-    public void setCarreraId(Integer carreraId) {
-        this.carreraId = carreraId;
-    }
-
-    public Integer getAnioId() {
-        return anioId;
-    }
-
-    public void setAnioId(Integer anioId) {
-        this.anioId = anioId;
-    }
-
     public boolean isUrgente() {
         return urgente;
     }
 
     public void setUrgente(boolean urgente) {
         this.urgente = urgente;
+    }
+
+    public List<DestinoRequest> getInscripciones() {
+        return inscripciones;
+    }
+
+    public void setInscripciones(List<DestinoRequest> inscripciones) {
+        this.inscripciones = inscripciones;
+    }
+
+    public static class DestinoRequest {
+
+        private Integer anioCarreraId;
+
+        public DestinoRequest() {
+        }
+
+        public Integer getAnioCarreraId() {
+            return anioCarreraId;
+        }
+
+        public void setAnioCarreraId(Integer anioCarreraId) {
+            this.anioCarreraId = anioCarreraId;
+        }
     }
 }

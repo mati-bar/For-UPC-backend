@@ -1,5 +1,7 @@
+
 package com.example.forupc_backend.modelo;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 
 @Entity
@@ -10,19 +12,30 @@ public class PublicacionDestino {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @ManyToOne
+    @JsonIgnore
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "publicacion_id", nullable = false)
     private Publicacion publicacion;
 
     @ManyToOne
-    @JoinColumn(name = "carrera_id")
+    @JoinColumn(name = "carrera_id", nullable = false)
     private Carrera carrera;
 
     @ManyToOne
-    @JoinColumn(name = "anio_id")
+    @JoinColumn(name = "anio_id", nullable = false)
     private Anio anio;
 
     public PublicacionDestino() {
+    }
+
+    public PublicacionDestino(
+            Publicacion publicacion,
+            Carrera carrera,
+            Anio anio
+    ) {
+        this.publicacion = publicacion;
+        this.carrera = carrera;
+        this.anio = anio;
     }
 
     public Integer getId() {

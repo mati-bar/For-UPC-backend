@@ -1,14 +1,12 @@
-
 package com.example.forupc_backend.controller;
 
-import com.example.forupc_backend.modelo.Anio;
-import com.example.forupc_backend.modelo.Carrera;
+import com.example.forupc_backend.dto.PublicacionRequest;
+import com.example.forupc_backend.modelo.AnioCarrera;
 import com.example.forupc_backend.modelo.DuracionPublicacion;
 import com.example.forupc_backend.modelo.Publicacion;
-import com.example.forupc_backend.modelo.PublicacionRequest;
+import com.example.forupc_backend.modelo.PublicacionDestino;
 
-import com.example.forupc_backend.repository.AnioRepository;
-import com.example.forupc_backend.repository.CarreraRepository;
+import com.example.forupc_backend.repository.AnioCarreraRepository;
 import com.example.forupc_backend.repository.PublicacionRepository;
 
 import com.example.forupc_backend.service.SupabaseStorageService;
@@ -22,29 +20,28 @@ import org.springframework.web.multipart.MultipartFile;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
+import java.util.Set;
 
 @RestController
 @RequestMapping("/publicaciones")
 public class PublicacionController {
 
     private final PublicacionRepository publicacionRepository;
-    private final CarreraRepository carreraRepository;
-    private final AnioRepository anioRepository;
+    private final AnioCarreraRepository anioCarreraRepository;
     private final SupabaseStorageService storageService;
     private final JsonMapper jsonMapper;
 
     public PublicacionController(
             PublicacionRepository publicacionRepository,
-            CarreraRepository carreraRepository,
-            AnioRepository anioRepository,
+            AnioCarreraRepository anioCarreraRepository,
             SupabaseStorageService storageService,
             JsonMapper jsonMapper
     ) {
         this.publicacionRepository = publicacionRepository;
-        this.carreraRepository = carreraRepository;
-        this.anioRepository = anioRepository;
+        this.anioCarreraRepository = anioCarreraRepository;
         this.storageService = storageService;
         this.jsonMapper = jsonMapper;
     }
@@ -55,6 +52,7 @@ public class PublicacionController {
 
     @GetMapping
     public ResponseEntity<List<Publicacion>> listarPublicaciones() {
+
         return ResponseEntity.ok(
                 publicacionRepository.findAllByOrderByFechaDesc()
         );
@@ -65,9 +63,10 @@ public class PublicacionController {
     // =====================================
 
     @GetMapping("/{id}")
-    public ResponseEntity<Publicacion> obtenerPublicacion(
+    public ResponseEntity<?> obtenerPublicacion(
             @PathVariable Integer id
     ) {
+
         return publicacionRepository.findById(id)
                 .map(ResponseEntity::ok)
                 .orElseGet(() ->
@@ -79,7 +78,9 @@ public class PublicacionController {
     // CREAR PUBLICACION
     // =====================================
 
-    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE
+    )
     public ResponseEntity<?> crearPublicacion(
 
             @RequestPart("datos") String datos,
@@ -90,14 +91,15 @@ public class PublicacionController {
             @RequestPart(value = "archivo", required = false)
             MultipartFile archivo
     ) {
+
         try {
 
             PublicacionRequest request = convertirDatos(datos);
 
-            String error = validarDatos(request);
-            if (error != null) {
-                return ResponseEntity.badRequest().body(error);
-            }
+            validarDatos(request);
+
+            List<AnioCarrera> relaciones =
+                    validarInscripciones(request);
 
             Publicacion publicacion = new Publicacion();
 
@@ -105,24 +107,12 @@ public class PublicacionController {
 
             aplicarDatos(publicacion, request, true);
 
-            if (request.getCarreraId() != null &&
-                    publicacion.getCarrera() == null) {
-
-                return ResponseEntity.badRequest()
-                        .body("La carrera indicada no existe.");
-            }
-
-            if (request.getAnioId() != null &&
-                    publicacion.getAnio() == null) {
-
-                return ResponseEntity.badRequest()
-                        .body("El año indicado no existe.");
-            }
+            asignarDestinos(publicacion, relaciones);
 
             subirArchivos(publicacion, imagen, archivo);
 
             Publicacion guardada =
-                    publicacionRepository.save(publicacion);
+                    publicacionRepository.saveAndFlush(publicacion);
 
             return ResponseEntity
                     .status(HttpStatus.CREATED)
@@ -143,7 +133,6 @@ public class PublicacionController {
 
     // =====================================
     // EDITAR PUBLICACION
-    // SOLO ADMINISTRADOR (SECURITYCONFIG)
     // =====================================
 
     @PutMapping(
@@ -162,50 +151,35 @@ public class PublicacionController {
             @RequestPart(value = "archivo", required = false)
             MultipartFile archivo
     ) {
+
         try {
 
-            Optional<Publicacion> encontrada =
-                    publicacionRepository.findById(id);
+            Publicacion publicacion =
+                    publicacionRepository.findById(id)
+                            .orElse(null);
 
-            if (encontrada.isEmpty()) {
+            if (publicacion == null) {
                 return ResponseEntity.notFound().build();
             }
 
             PublicacionRequest request = convertirDatos(datos);
 
-            String error = validarDatos(request);
-            if (error != null) {
-                return ResponseEntity.badRequest().body(error);
-            }
+            validarDatos(request);
 
-            Publicacion publicacion = encontrada.get();
+            List<AnioCarrera> relaciones =
+                    validarInscripciones(request);
 
-            // Validar las relaciones antes de modificar datos
-            if (request.getCarreraId() != null &&
-                    !carreraRepository.existsById(
-                            request.getCarreraId())) {
-
-                return ResponseEntity.badRequest()
-                        .body("La carrera indicada no existe.");
-            }
-
-            if (request.getAnioId() != null &&
-                    !anioRepository.existsById(
-                            request.getAnioId())) {
-
-                return ResponseEntity.badRequest()
-                        .body("El año indicado no existe.");
-            }
-
-            // La fecha original no se modifica
+            // Mantener la fecha original
             aplicarDatos(publicacion, request, false);
 
-            // Si no se envían nuevos archivos,
-            // se mantienen las URLs anteriores.
+            // Actualizar destinos sin duplicarlos
+            asignarDestinos(publicacion, relaciones);
+
+            // Conservar archivos si no se suben nuevos
             subirArchivos(publicacion, imagen, archivo);
 
             Publicacion actualizada =
-                    publicacionRepository.save(publicacion);
+                    publicacionRepository.saveAndFlush(publicacion);
 
             return ResponseEntity.ok(actualizada);
 
@@ -215,6 +189,10 @@ public class PublicacionController {
                     .body(e.getMessage());
 
         } catch (Exception e) {
+
+            // Diagnóstico solamente en desarrollo.
+            // No devolver detalles internos al frontend.
+            e.printStackTrace();
 
             return ResponseEntity
                     .status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -271,9 +249,11 @@ public class PublicacionController {
             return request;
 
         } catch (IllegalArgumentException e) {
+
             throw e;
 
         } catch (Exception e) {
+
             throw new IllegalArgumentException(
                     "El campo datos no contiene un JSON válido."
             );
@@ -281,32 +261,155 @@ public class PublicacionController {
     }
 
     // =====================================
-    // VALIDACIONES
+    // VALIDAR DATOS GENERALES
     // =====================================
 
-    private String validarDatos(PublicacionRequest request) {
-
-        if (request == null) {
-            return "Los datos de la publicación son obligatorios.";
-        }
+    private void validarDatos(PublicacionRequest request) {
 
         if (request.getTitulo() == null ||
                 request.getTitulo().isBlank()) {
 
-            return "El título es obligatorio.";
+            throw new IllegalArgumentException(
+                    "El título es obligatorio."
+            );
         }
 
         if (request.getMensaje() == null ||
                 request.getMensaje().isBlank()) {
 
-            return "El mensaje es obligatorio.";
+            throw new IllegalArgumentException(
+                    "El mensaje es obligatorio."
+            );
         }
-
-        return null;
     }
 
     // =====================================
-    // APLICAR DATOS DE LA PUBLICACION
+    // VALIDAR INSCRIPCIONES MULTIPLES
+    // =====================================
+
+    private List<AnioCarrera> validarInscripciones(
+            PublicacionRequest request
+    ) {
+
+        if (request.getInscripciones() == null ||
+                request.getInscripciones().isEmpty()) {
+
+            throw new IllegalArgumentException(
+                    "La publicación debe tener al menos un destino."
+            );
+        }
+
+        Set<Integer> idsSeleccionados = new HashSet<>();
+
+        List<AnioCarrera> relaciones = new ArrayList<>();
+
+        for (PublicacionRequest.DestinoRequest destino :
+                request.getInscripciones()) {
+
+            if (destino == null ||
+                    destino.getAnioCarreraId() == null) {
+
+                throw new IllegalArgumentException(
+                        "Cada destino debe indicar un anioCarreraId."
+                );
+            }
+
+            Integer id = destino.getAnioCarreraId();
+
+            // No repetir la misma combinación de carrera y año
+            if (!idsSeleccionados.add(id)) {
+
+                throw new IllegalArgumentException(
+                        "No podés repetir la misma combinación de carrera y año."
+                );
+            }
+
+            AnioCarrera relacion = anioCarreraRepository
+                    .findById(id)
+                    .orElse(null);
+
+            if (relacion == null) {
+
+                throw new IllegalArgumentException(
+                        "La combinación de carrera y año indicada no existe."
+                );
+            }
+
+            relaciones.add(relacion);
+        }
+
+        return relaciones;
+    }
+
+    // =====================================
+    // ASIGNAR DESTINOS SIN DUPLICADOS
+    // =====================================
+
+    private void asignarDestinos(
+            Publicacion publicacion,
+            List<AnioCarrera> relaciones
+    ) {
+
+        // Crear conjunto con las combinaciones solicitadas
+        Set<String> combinacionesSolicitadas = new HashSet<>();
+
+        for (AnioCarrera relacion : relaciones) {
+
+            String clave = relacion.getCarrera().getId()
+                    + "-" + relacion.getAnio().getId();
+
+            combinacionesSolicitadas.add(clave);
+        }
+
+        // Eliminar solo los destinos que ya no se necesitan
+        publicacion.getDestinos().removeIf(destino -> {
+
+            String clave = destino.getCarrera().getId()
+                    + "-" + destino.getAnio().getId();
+
+            return !combinacionesSolicitadas.contains(clave);
+        });
+
+        // Identificar las combinaciones que ya existen
+        Set<String> combinacionesExistentes = new HashSet<>();
+
+        for (PublicacionDestino destino :
+                publicacion.getDestinos()) {
+
+            String clave = destino.getCarrera().getId()
+                    + "-" + destino.getAnio().getId();
+
+            combinacionesExistentes.add(clave);
+        }
+
+        // Agregar solamente los nuevos destinos
+        for (AnioCarrera relacion : relaciones) {
+
+            String clave = relacion.getCarrera().getId()
+                    + "-" + relacion.getAnio().getId();
+
+            if (!combinacionesExistentes.contains(clave)) {
+
+                PublicacionDestino destino =
+                        new PublicacionDestino(
+                                publicacion,
+                                relacion.getCarrera(),
+                                relacion.getAnio()
+                        );
+
+                publicacion.getDestinos().add(destino);
+
+                combinacionesExistentes.add(clave);
+            }
+        }
+
+        // La publicación ahora utiliza destinos múltiples
+        publicacion.setCarrera(null);
+        publicacion.setAnio(null);
+    }
+
+    // =====================================
+    // APLICAR DATOS GENERALES
     // =====================================
 
     private void aplicarDatos(
@@ -319,16 +422,13 @@ public class PublicacionController {
         publicacion.setMensaje(request.getMensaje());
         publicacion.setUrgente(request.isUrgente());
 
-        // En creación, la fecha ya está establecida.
-        // En edición, mantenemos esa fecha original.
-
+        // En edición se mantiene la fecha original
+        // y se recalcula el vencimiento si se indica duración.
         if (request.getDuracion() != null) {
-
-            LocalDateTime referencia = LocalDateTime.now();
 
             publicacion.setFechaExpiracion(
                     calcularExpiracion(
-                            referencia,
+                            LocalDateTime.now(),
                             request.getDuracion()
                     )
             );
@@ -336,34 +436,6 @@ public class PublicacionController {
         } else if (creacion) {
 
             publicacion.setFechaExpiracion(null);
-        }
-
-        // Carrera: null significa sin carrera específica.
-        if (request.getCarreraId() == null) {
-
-            publicacion.setCarrera(null);
-
-        } else {
-
-            Carrera carrera = carreraRepository
-                    .findById(request.getCarreraId())
-                    .orElse(null);
-
-            publicacion.setCarrera(carrera);
-        }
-
-        // Año: null significa sin año específico.
-        if (request.getAnioId() == null) {
-
-            publicacion.setAnio(null);
-
-        } else {
-
-            Anio anio = anioRepository
-                    .findById(request.getAnioId())
-                    .orElse(null);
-
-            publicacion.setAnio(anio);
         }
     }
 
@@ -389,7 +461,7 @@ public class PublicacionController {
     }
 
     // =====================================
-    // SUBIR O REEMPLAZAR ARCHIVOS
+    // SUBIR O CONSERVAR ARCHIVOS
     // =====================================
 
     private void subirArchivos(
