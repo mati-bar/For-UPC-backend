@@ -11,6 +11,10 @@ import com.example.forupc_backend.repository.PublicacionRepository;
 
 import com.example.forupc_backend.service.SupabaseStorageService;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -47,15 +51,29 @@ public class PublicacionController {
     }
 
     // =====================================
-    // LISTAR PUBLICACIONES
+    // LISTAR PUBLICACIONES PAGINADAS
     // =====================================
 
     @GetMapping
-    public ResponseEntity<List<Publicacion>> listarPublicaciones() {
+    public ResponseEntity<Page<Publicacion>> listarPublicaciones(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        if (page < 0 || size < 1 || size > 100) {
+            return ResponseEntity.badRequest().build();
+        }
 
-        return ResponseEntity.ok(
-                publicacionRepository.findAllByOrderByFechaDesc()
+        Pageable pageable = PageRequest.of(
+                page,
+                size,
+                Sort.by(
+                        Sort.Order.desc("fecha"),
+                        Sort.Order.desc("id")
+                )
         );
+
+        Page<Publicacion> publicaciones = publicacionRepository.findAll(pageable);
+        return ResponseEntity.ok(publicaciones);
     }
 
     // =====================================
