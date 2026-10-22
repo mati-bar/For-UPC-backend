@@ -1,6 +1,8 @@
+
 package com.example.forupc_backend.controller;
 
 import com.example.forupc_backend.dto.PublicacionRequest;
+import com.example.forupc_backend.dto.PublicacionesPaginadasResponse;
 import com.example.forupc_backend.modelo.AnioCarrera;
 import com.example.forupc_backend.modelo.DuracionPublicacion;
 import com.example.forupc_backend.modelo.Publicacion;
@@ -10,11 +12,8 @@ import com.example.forupc_backend.repository.AnioCarreraRepository;
 import com.example.forupc_backend.repository.PublicacionRepository;
 
 import com.example.forupc_backend.service.SupabaseStorageService;
+import com.example.forupc_backend.service.PublicacionConsultaService;
 
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -37,17 +36,20 @@ public class PublicacionController {
     private final AnioCarreraRepository anioCarreraRepository;
     private final SupabaseStorageService storageService;
     private final JsonMapper jsonMapper;
+    private final PublicacionConsultaService publicacionConsultaService;
 
     public PublicacionController(
             PublicacionRepository publicacionRepository,
             AnioCarreraRepository anioCarreraRepository,
             SupabaseStorageService storageService,
-            JsonMapper jsonMapper
+            JsonMapper jsonMapper,
+            PublicacionConsultaService publicacionConsultaService
     ) {
         this.publicacionRepository = publicacionRepository;
         this.anioCarreraRepository = anioCarreraRepository;
         this.storageService = storageService;
         this.jsonMapper = jsonMapper;
+        this.publicacionConsultaService = publicacionConsultaService;
     }
 
     // =====================================
@@ -55,7 +57,7 @@ public class PublicacionController {
     // =====================================
 
     @GetMapping
-    public ResponseEntity<Page<Publicacion>> listarPublicaciones(
+    public ResponseEntity<PublicacionesPaginadasResponse> listarPublicaciones(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
@@ -63,17 +65,10 @@ public class PublicacionController {
             return ResponseEntity.badRequest().build();
         }
 
-        Pageable pageable = PageRequest.of(
-                page,
-                size,
-                Sort.by(
-                        Sort.Order.desc("fecha"),
-                        Sort.Order.desc("id")
-                )
-        );
+        PublicacionesPaginadasResponse respuesta =
+                publicacionConsultaService.listarPublicaciones(page, size);
 
-        Page<Publicacion> publicaciones = publicacionRepository.findAll(pageable);
-        return ResponseEntity.ok(publicaciones);
+        return ResponseEntity.ok(respuesta);
     }
 
     // =====================================
@@ -506,3 +501,4 @@ public class PublicacionController {
         }
     }
 }
+
