@@ -4,7 +4,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
-
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -12,7 +11,6 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -33,10 +31,6 @@ public class SecurityConfig {
         this.jwtAuthFilter = jwtAuthFilter;
     }
 
-    // =====================================
-    // ENCRIPTACION DE CONTRASEÑAS
-    // =====================================
-
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -45,183 +39,87 @@ public class SecurityConfig {
     // =====================================
     // CONFIGURACION CORS
     // =====================================
-
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
 
-        CorsConfiguration configuration =
-                new CorsConfiguration();
-
-        List<String> origins = Arrays.stream(
-                        allowedOrigins.split(",")
-                )
+        List<String> origins = Arrays.stream(allowedOrigins.split(","))
                 .map(String::trim)
                 .filter(origin -> !origin.isEmpty())
                 .toList();
 
         configuration.setAllowedOrigins(origins);
-
-        configuration.setAllowedMethods(
-                List.of(
-                        "GET",
-                        "POST",
-                        "PUT",
-                        "PATCH",
-                        "DELETE",
-                        "OPTIONS"
-                )
-        );
-
-        configuration.setAllowedHeaders(
-                List.of(
-                        "Authorization",
-                        "Content-Type",
-                        "Accept"
-                )
-        );
-
+        configuration.setAllowedMethods(List.of(
+                "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"
+        ));
+        configuration.setAllowedHeaders(List.of(
+                "Authorization", "Content-Type", "Accept"
+        ));
         configuration.setAllowCredentials(false);
 
-        UrlBasedCorsConfigurationSource source =
-                new UrlBasedCorsConfigurationSource();
-
-        source.registerCorsConfiguration(
-                "/**",
-                configuration
-        );
-
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
         return source;
     }
 
     // =====================================
     // SEGURIDAD HTTP Y JWT
     // =====================================
-
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http)
-            throws Exception {
-
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                // Habilitar CORS
-                .cors(cors -> cors.configurationSource(
-                        corsConfigurationSource()
-                ))
-
-                // API REST con JWT
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())
-
-                .sessionManagement(sm ->
-                        sm.sessionCreationPolicy(
-                                SessionCreationPolicy.STATELESS
-                        )
-                )
-
+                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        // Preflight CORS
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                        // =====================================
-                        // PREFLIGHT CORS
-                        // =====================================
+                        // Registro, login y recuperacion
+                        .requestMatchers("/auth/**").permitAll()
 
-                        .requestMatchers(
-                                HttpMethod.OPTIONS,
-                                "/**"
+                        // Documentacion API
+                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
+
+                        // Consultas publicas
+                        .requestMatchers(HttpMethod.GET,
+                                "/publicaciones", "/publicaciones/**",
+                                "/carreras", "/carreras/**",
+                                "/anios", "/anios/**"
                         ).permitAll()
 
-                        // =====================================
-                        // AUTENTICACION Y REGISTRO
-                        // =====================================
+                        // Administrar publicaciones
+                        .requestMatchers(HttpMethod.PUT, "/publicaciones/**")
+                        .hasRole("ADMINISTRADOR")
+                        .requestMatchers(HttpMethod.POST, "/publicaciones", "/publicaciones/")
+                        .hasRole("ADMINISTRADOR")
+                        .requestMatchers(HttpMethod.DELETE, "/publicaciones/**")
+                        .hasRole("ADMINISTRADOR")
 
-                        .requestMatchers(
-                                "/auth/**"
-                        ).permitAll()
+                        // Administrar carreras
+                        .requestMatchers(HttpMethod.POST, "/carreras", "/carreras/")
+                        .hasRole("ADMINISTRADOR")
+                        .requestMatchers(HttpMethod.PUT, "/carreras/**")
+                        .hasRole("ADMINISTRADOR")
+                        .requestMatchers(HttpMethod.DELETE, "/carreras/**")
+                        .hasRole("ADMINISTRADOR")
 
-                        // =====================================
-                        // DOCUMENTACION API
-                        // =====================================
+                        // Administracion de estudiantes
+                        .requestMatchers(HttpMethod.GET, "/usuarios", "/usuarios/")
+                        .hasRole("ADMINISTRADOR")
+                        .requestMatchers(HttpMethod.DELETE, "/usuarios/{id}")
+                        .hasRole("ADMINISTRADOR")
 
-                        .requestMatchers(
-                                "/swagger-ui/**",
-                                "/v3/api-docs/**"
-                        ).permitAll()
+                        // Errores
+                        .requestMatchers("/error").permitAll()
 
-                        // =====================================
-                        // CONSULTAS PUBLICAS
-                        // =====================================
-
-                        .requestMatchers(
-                                HttpMethod.GET,
-                                "/publicaciones",
-                                "/publicaciones/**",
-                                "/carreras",
-                                "/carreras/**",
-                                "/anios",
-                                "/anios/**"
-                        ).permitAll()
-
-                        // =====================================
-                        // ADMINISTRAR PUBLICACIONES
-                        // =====================================
-                        .requestMatchers(
-                                HttpMethod.PUT,
-                                "/publicaciones/**"
-                        ).hasRole("ADMINISTRADOR")
-
-                        .requestMatchers(
-                                HttpMethod.POST,
-                                "/publicaciones",
-                                "/publicaciones/"
-                        ).hasRole("ADMINISTRADOR")
-
-                        .requestMatchers(
-                                HttpMethod.DELETE,
-                                "/publicaciones/**"
-                        ).hasRole("ADMINISTRADOR")
-
-                        // =====================================
-                        // ADMINISTRAR CARRERAS
-                        // =====================================
-
-                        .requestMatchers(
-                                HttpMethod.POST,
-                                "/carreras",
-                                "/carreras/"
-                        ).hasRole("ADMINISTRADOR")
-
-                        .requestMatchers(
-                                HttpMethod.PUT,
-                                "/carreras/**"
-                        ).hasRole("ADMINISTRADOR")
-
-                        .requestMatchers(
-                                HttpMethod.DELETE,
-                                "/carreras/**"
-                        ).hasRole("ADMINISTRADOR")
-
-                        // =====================================
-                        // ERRORES
-                        // =====================================
-
-                        .requestMatchers(
-                                "/error"
-                        ).permitAll()
-
-                        .requestMatchers(
-                                "/usuarios/me",
-                                "/usuarios/me/inscripciones"
-                        ).authenticated()
-
-                        // =====================================
-                        // RESTO DE RUTAS
-                        // =====================================
+                        // Perfil del usuario autenticado
+                        .requestMatchers("/usuarios/me", "/usuarios/me/inscripciones")
+                        .authenticated()
 
                         .anyRequest().authenticated()
                 )
-
-                // Filtro JWT
-                .addFilterBefore(
-                        jwtAuthFilter,
-                        UsernamePasswordAuthenticationFilter.class
-                );
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

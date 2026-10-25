@@ -19,35 +19,24 @@ public class PublicacionConsultaService {
 
     private final PublicacionRepository publicacionRepository;
 
-    public PublicacionConsultaService(
-            PublicacionRepository publicacionRepository
-    ) {
+    public PublicacionConsultaService(PublicacionRepository publicacionRepository) {
         this.publicacionRepository = publicacionRepository;
     }
 
     @Transactional(readOnly = true)
-    public PublicacionesPaginadasResponse listarPublicaciones(
-            int page,
-            int size
-    ) {
-
+    public PublicacionesPaginadasResponse listarPublicaciones(int page, int size) {
         Pageable pageable = PageRequest.of(
                 page,
                 size,
-                Sort.by(
-                        Sort.Order.desc("fecha"),
-                        Sort.Order.desc("id")
-                )
+                Sort.by(Sort.Order.desc("fecha"), Sort.Order.desc("id"))
         );
 
-        Page<Publicacion> resultado =
-                publicacionRepository.findAll(pageable);
+        Page<Publicacion> resultado = publicacionRepository.findAll(pageable);
 
-        List<PublicacionesPaginadasResponse.PublicacionItem>
-                publicaciones = resultado.getContent()
-                .stream()
-                .map(this::convertirPublicacion)
-                .toList();
+        List<PublicacionesPaginadasResponse.PublicacionItem> publicaciones =
+                resultado.getContent().stream()
+                        .map(this::convertirPublicacion)
+                        .toList();
 
         return new PublicacionesPaginadasResponse(
                 publicaciones,
@@ -61,14 +50,11 @@ public class PublicacionConsultaService {
         );
     }
 
-    private PublicacionesPaginadasResponse.PublicacionItem
-    convertirPublicacion(Publicacion publicacion) {
-
-        List<PublicacionesPaginadasResponse.DestinoItem>
-                destinos = publicacion.getDestinos()
-                .stream()
-                .map(this::convertirDestino)
-                .toList();
+    private PublicacionesPaginadasResponse.PublicacionItem convertirPublicacion(Publicacion publicacion) {
+        List<PublicacionesPaginadasResponse.DestinoItem> destinos =
+                publicacion.getDestinos().stream()
+                        .map(this::convertirDestino)
+                        .toList();
 
         return new PublicacionesPaginadasResponse.PublicacionItem(
                 publicacion.getId(),
@@ -80,23 +66,23 @@ public class PublicacionConsultaService {
                 publicacion.getImagenUrl(),
                 publicacion.getArchivoUrl(),
                 publicacion.getArchivoNombre(),
-                publicacion.getCarrera() != null
-                        ? publicacion.getCarrera().getId()
-                        : null,
-                publicacion.getAnio() != null
-                        ? publicacion.getAnio().getId()
-                        : null,
+                publicacion.getCarrera() != null ? publicacion.getCarrera().getId() : null,
+                publicacion.getAnio() != null ? publicacion.getAnio().getId() : null,
                 destinos
         );
     }
 
-    private PublicacionesPaginadasResponse.DestinoItem
-    convertirDestino(PublicacionDestino destino) {
-
+    private PublicacionesPaginadasResponse.DestinoItem convertirDestino(PublicacionDestino destino) {
         return new PublicacionesPaginadasResponse.DestinoItem(
                 destino.getId(),
-                destino.getCarrera().getId(),
-                destino.getAnio().getId()
+                new PublicacionesPaginadasResponse.CarreraItem(
+                        destino.getCarrera().getId(),
+                        destino.getCarrera().getNombre()
+                ),
+                new PublicacionesPaginadasResponse.AnioItem(
+                        destino.getAnio().getId(),
+                        destino.getAnio().getNumero()
+                )
         );
     }
 }

@@ -13,7 +13,6 @@ public record PublicacionesPaginadasResponse(
         boolean last,
         boolean empty
 ) {
-
     public record PublicacionItem(
             Integer id,
             String titulo,
@@ -31,7 +30,11 @@ public record PublicacionesPaginadasResponse(
 
     public record DestinoItem(
             Integer id,
-            Integer carreraId,
-            Integer anioId
+            CarreraItem carrera,
+            AnioItem anio
     ) {}
+
+    public record CarreraItem(Integer id, String nombre) {}
+
+    public record AnioItem(Integer id, Integer numero) {}
 }
