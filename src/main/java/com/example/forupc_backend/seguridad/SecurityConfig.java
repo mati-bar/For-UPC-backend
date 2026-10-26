@@ -107,6 +107,8 @@ public class SecurityConfig {
                         // Administracion de estudiantes
                         .requestMatchers(HttpMethod.GET, "/usuarios", "/usuarios/")
                         .hasRole("ADMINISTRADOR")
+                        .requestMatchers(HttpMethod.PUT, "/usuarios/{id}")
+                        .hasRole("ADMINISTRADOR")
                         .requestMatchers(HttpMethod.DELETE, "/usuarios/{id}")
                         .hasRole("ADMINISTRADOR")
 

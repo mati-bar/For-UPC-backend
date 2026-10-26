@@ -70,6 +70,93 @@ public class UsuarioController {
     }
 
     // =====================================
+    // EDITAR ESTUDIANTE - ADMINISTRADOR
+    // =====================================
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    @Transactional
+    public ResponseEntity<?> editarEstudiante(
+            @PathVariable Integer id,
+            @RequestBody EditarAlumnoAdminRequest datos
+    ) {
+        Usuario usuario = usuarioRepository.findById(id).orElse(null);
+        if (usuario == null) {
+            return ResponseEntity.notFound().build();
+        }
+        if (usuario.getRol() != Rol.ESTUDIANTE) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("Solo se pueden editar estudiantes.");
+        }
+        if (datos == null || datos.nombre() == null || datos.nombre().isBlank()
+                || datos.apellido() == null || datos.apellido().isBlank()
+                || datos.email() == null || datos.email().isBlank()) {
+            return ResponseEntity.badRequest()
+                    .body("Nombre, apellido y correo son obligatorios.");
+        }
+
+        String email = datos.email().trim().toLowerCase(java.util.Locale.ROOT);
+        if (!email.matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$")) {
+            return ResponseEntity.badRequest().body("El correo no tiene un formato válido.");
+        }
+        boolean correoOcupado = usuarioRepository.findByEmail(email)
+                .filter(otro -> !otro.getId().equals(usuario.getId()))
+                .isPresent();
+        if (correoOcupado) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body("El correo ya está registrado por otro usuario.");
+        }
+        if (datos.anioCarreraIds() == null || datos.anioCarreraIds().isEmpty()) {
+            return ResponseEntity.badRequest()
+                    .body("Debés seleccionar al menos una inscripción.");
+        }
+
+        // Validar todas las inscripciones antes de alterar el registro.
+        Set<Integer> carreras = new HashSet<>();
+        Set<Integer> idsSolicitados = new HashSet<>();
+        List<AnioCarrera> relaciones = new ArrayList<>();
+        for (Integer relacionId : datos.anioCarreraIds()) {
+            if (relacionId == null || !idsSolicitados.add(relacionId)) {
+                return ResponseEntity.badRequest()
+                        .body("Las inscripciones deben tener IDs válidos y no repetidos.");
+            }
+            AnioCarrera relacion = anioCarreraRepository.findById(relacionId).orElse(null);
+            if (relacion == null) {
+                return ResponseEntity.badRequest()
+                        .body("La combinación de carrera y año no existe.");
+            }
+            if (!carreras.add(relacion.getCarrera().getId())) {
+                return ResponseEntity.badRequest()
+                        .body("No podés seleccionar dos años de la misma carrera.");
+            }
+            relaciones.add(relacion);
+        }
+
+        usuario.setNombre(datos.nombre().trim());
+        usuario.setApellido(datos.apellido().trim());
+        usuario.setEmail(email);
+
+        // Quitar únicamente las relaciones que dejaron de estar seleccionadas.
+        for (Inscripcion inscripcion : new ArrayList<>(usuario.getInscripciones())) {
+            if (!idsSolicitados.contains(inscripcion.getAnioCarrera().getId())) {
+                usuario.eliminarInscripcion(inscripcion);
+            }
+        }
+        usuarioRepository.saveAndFlush(usuario);
+
+        Set<Integer> existentes = new HashSet<>();
+        for (Inscripcion inscripcion : usuario.getInscripciones()) {
+            existentes.add(inscripcion.getAnioCarrera().getId());
+        }
+        for (AnioCarrera relacion : relaciones) {
+            if (!existentes.contains(relacion.getId())) {
+                usuario.agregarInscripcion(new Inscripcion(usuario, relacion));
+            }
+        }
+        usuarioRepository.saveAndFlush(usuario);
+        return ResponseEntity.ok(construirPerfil(usuario));
+    }
+
+    // =====================================
     // CONSULTAR MI PERFIL
     // =====================================
     @GetMapping("/me")
