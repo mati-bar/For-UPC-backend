@@ -1,3 +1,4 @@
+
 package com.example.forupc_backend.seguridad;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -72,56 +73,106 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // Preflight CORS
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                        // Registro, login y recuperacion
-                        .requestMatchers("/auth/**").permitAll()
+                        // =====================================
+                        // PREFLIGHT CORS
+                        // =====================================
+                        .requestMatchers(HttpMethod.OPTIONS, "/**")
+                        .permitAll()
 
-                        // Documentacion API
-                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                        // =====================================
+                        // REGISTRO, LOGIN Y RECUPERACION
+                        // =====================================
+                        .requestMatchers("/auth/**")
+                        .permitAll()
 
-                        // Consultas publicas
+                        // =====================================
+                        // DOCUMENTACION API
+                        // =====================================
+                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**")
+                        .permitAll()
+
+                        // =====================================
+                        // CONSULTAS PUBLICAS
+                        // =====================================
                         .requestMatchers(HttpMethod.GET,
                                 "/publicaciones", "/publicaciones/**",
                                 "/carreras", "/carreras/**",
                                 "/anios", "/anios/**"
-                        ).permitAll()
+                        )
+                        .permitAll()
 
-                        // Administrar publicaciones
+                        // =====================================
+                        // PERFIL DEL USUARIO AUTENTICADO
+                        // IMPORTANTE: ANTES DE /usuarios/{id}
+                        // =====================================
+                        .requestMatchers(
+                                "/usuarios/me",
+                                "/usuarios/me/inscripciones"
+                        )
+                        .authenticated()
+
+                        // =====================================
+                        // ADMINISTRAR PUBLICACIONES
+                        // =====================================
                         .requestMatchers(HttpMethod.PUT, "/publicaciones/**")
                         .hasRole("ADMINISTRADOR")
-                        .requestMatchers(HttpMethod.POST, "/publicaciones", "/publicaciones/")
+
+                        .requestMatchers(HttpMethod.POST,
+                                "/publicaciones",
+                                "/publicaciones/"
+                        )
                         .hasRole("ADMINISTRADOR")
+
                         .requestMatchers(HttpMethod.DELETE, "/publicaciones/**")
                         .hasRole("ADMINISTRADOR")
 
-                        // Administrar carreras
-                        .requestMatchers(HttpMethod.POST, "/carreras", "/carreras/")
+                        // =====================================
+                        // ADMINISTRAR CARRERAS
+                        // =====================================
+                        .requestMatchers(HttpMethod.POST,
+                                "/carreras",
+                                "/carreras/"
+                        )
                         .hasRole("ADMINISTRADOR")
+
                         .requestMatchers(HttpMethod.PUT, "/carreras/**")
                         .hasRole("ADMINISTRADOR")
+
                         .requestMatchers(HttpMethod.DELETE, "/carreras/**")
                         .hasRole("ADMINISTRADOR")
 
-                        // Administracion de estudiantes
-                        .requestMatchers(HttpMethod.GET, "/usuarios", "/usuarios/")
+                        // =====================================
+                        // ADMINISTRACION DE ESTUDIANTES
+                        // =====================================
+                        .requestMatchers(HttpMethod.GET,
+                                "/usuarios",
+                                "/usuarios/"
+                        )
                         .hasRole("ADMINISTRADOR")
+
                         .requestMatchers(HttpMethod.PUT, "/usuarios/{id}")
                         .hasRole("ADMINISTRADOR")
+
                         .requestMatchers(HttpMethod.DELETE, "/usuarios/{id}")
                         .hasRole("ADMINISTRADOR")
 
-                        // Errores
-                        .requestMatchers("/error").permitAll()
+                        // =====================================
+                        // ERRORES
+                        // =====================================
+                        .requestMatchers("/error")
+                        .permitAll()
 
-                        // Perfil del usuario autenticado
-                        .requestMatchers("/usuarios/me", "/usuarios/me/inscripciones")
+                        // =====================================
+                        // RESTO DE ENDPOINTS
+                        // =====================================
+                        .anyRequest()
                         .authenticated()
-
-                        .anyRequest().authenticated()
                 )
-                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(
+                        jwtAuthFilter,
+                        UsernamePasswordAuthenticationFilter.class
+                );
 
         return http.build();
     }
