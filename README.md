@@ -34,12 +34,12 @@ La API utiliza autenticación JWT y distingue los roles ESTUDIANTE y ADMINISTRAD
 Para probar los endpoints protegidos en Swagger o en el sistema frontend, utilizar las siguientes credenciales:
 
 * **Administrador:**
-  * Email: [email_admin_prueba]
-  * Contraseña: [password_admin_prueba]
+  * Email: [adminforupc@sedelbye.com]
+  * Contraseña: [sedelbyelefebvre]
 
 * **Estudiante:**
-  * Email: [email_estudiante_prueba]
-  * Contraseña: [password_estudiante_prueba]
+  * Email: [estudiante@sedelbye.com]
+  * Contraseña: [estudiante1234]
 
 ##  Cómo correr el proyecto en local
 
