@@ -4,7 +4,7 @@ API RESTful desarrollada para gestionar el Portal Informativo Académico de la U
 
 ##  Tecnologías Utilizadas
 
-* **Lenguaje y Framework:** Java 17+ con Spring Boot 3
+* **Lenguaje y Framework:** Java 21 con Spring Boot 4.1.1
 * **Seguridad:** Spring Security con JWT (JSON Web Tokens)
 * **Base de Datos:** PostgreSQL (alojada en Supabase)
 * **Documentación:** Swagger (Springdoc OpenAPI)
