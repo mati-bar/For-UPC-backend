@@ -10,11 +10,24 @@ API RESTful desarrollada para gestionar el Portal Informativo Académico de la U
 * **Documentación:** Swagger (Springdoc OpenAPI)
 * **Testing:** JUnit 5, MockMvc y base de datos H2 (en memoria)
 
-##  Enlaces del Despliegue
 
-* **Backend (Render):** [https://for-upc-backend.onrender.com]
-* **Swagger (Documentación API):** [https://for-upc-backend.onrender.com/swagger-ui/index.html]
-* **Frontend (Vercel):** [for-upc-frontend.vercel.app]
+## Enlaces del proyecto
+
+- **Frontend (Vercel):** https://for-upc-frontend.vercel.app/
+- **Backend (Render):** https://for-upc-backend.onrender.com/
+- **Documentación API (Swagger UI):** https://for-upc-backend.onrender.com/swagger-ui/index.html
+- **Especificación OpenAPI (JSON):** https://for-upc-backend.onrender.com/v3/api-docs
+
+### Documentación de la API
+
+La API REST de For-UPC está documentada mediante Swagger UI y OpenAPI 3.1.
+
+Permite visualizar los endpoints disponibles, sus métodos HTTP, los parámetros de entrada y las respuestas.
+
+La API utiliza autenticación JWT y distingue los roles ESTUDIANTE y ADMINISTRADOR.
+
+[Acceder a la documentación interactiva de Swagger](https://for-upc-backend.onrender.com/swagger-ui/index.html)
+
 
 ##  Usuarios de Prueba
 
