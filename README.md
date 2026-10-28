@@ -1,0 +1,57 @@
+# FOR UPC - Portal Informativo Académico (Backend)
+
+API RESTful desarrollada para gestionar el Portal Informativo Académico de la Universidad Provincial de Córdoba (Sede Laboulaye). El sistema maneja la base de datos, la autenticación de usuarios y la lógica de negocio para dos roles principales: estudiantes (consumen el feed de novedades) y administradores (gestionan usuarios y publican anuncios).
+
+##  Tecnologías Utilizadas
+
+* **Lenguaje y Framework:** Java 17+ con Spring Boot 3
+* **Seguridad:** Spring Security con JWT (JSON Web Tokens)
+* **Base de Datos:** PostgreSQL (alojada en Supabase)
+* **Documentación:** Swagger (Springdoc OpenAPI)
+* **Testing:** JUnit 5, MockMvc y base de datos H2 (en memoria)
+
+##  Enlaces del Despliegue
+
+* **Backend (Render):** [Pegar acá el link del backend de Render]
+* **Swagger (Documentación API):** [Pegar acá el link de Swagger, ej: https://tu-back.onrender.com/swagger-ui/index.html]
+* **Frontend (Vercel):** [Pegar acá el link de Vercel]
+
+##  Usuarios de Prueba
+
+Para probar los endpoints protegidos en Swagger o en el sistema frontend, utilizar las siguientes credenciales:
+
+* **Administrador:**
+  * Email: [email_admin_prueba]
+  * Contraseña: [password_admin_prueba]
+
+* **Estudiante:**
+  * Email: [email_estudiante_prueba]
+  * Contraseña: [password_estudiante_prueba]
+
+##  Cómo correr el proyecto en local
+
+1. Clonar el repositorio y entrar a la carpeta:
+git clone https://github.com/[usuario]/[repositorio-back].git
+cd For-UPC-backend
+
+2. Configurar Variables de Entorno:
+Las credenciales no se suben al repositorio por seguridad. Se deben configurar como variables de entorno en el sistema o en el archivo de configuración local (`application.properties`).
+Ejemplos de variables requeridas (sin valores reales):
+DB_URL=jdbc:postgresql://aws-0-sa-east-1.pooler.supabase.com:6543/postgres
+DB_USER=postgres.[tu_usuario]
+DB_PASSWORD=[tu_password_de_supabase]
+JWT_SECRET=[clave_muy_larga_de_al_menos_32_caracteres]
+APP_FRONTEND_URL=http://localhost:5173
+
+3. Ejecutar la aplicación:
+Utilizar el IDE (IntelliJ IDEA / Eclipse) para ejecutar la clase principal, o correr el siguiente comando en la terminal:
+mvn spring-boot:run
+
+El servidor backend estará disponible en http://localhost:8080.
+
+##  Pruebas Automatizadas (JUnit y MockMvc)
+
+El proyecto cuenta con pruebas automáticas para verificar la seguridad, la generación del token y el control de acceso por roles. Los tests se ejecutan en un entorno aislado usando una base de datos en memoria (H2).
+
+Para correr la batería de pruebas, ejecutar el siguiente comando en la consola:
+mvn test
