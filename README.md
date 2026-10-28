@@ -12,9 +12,9 @@ API RESTful desarrollada para gestionar el Portal Informativo Académico de la U
 
 ##  Enlaces del Despliegue
 
-* **Backend (Render):** [Pegar acá el link del backend de Render]
-* **Swagger (Documentación API):** [Pegar acá el link de Swagger, ej: https://tu-back.onrender.com/swagger-ui/index.html]
-* **Frontend (Vercel):** [Pegar acá el link de Vercel]
+* **Backend (Render):** [https://for-upc-backend.onrender.com]
+* **Swagger (Documentación API):** [https://for-upc-backend.onrender.com/swagger-ui/index.html]
+* **Frontend (Vercel):** [for-upc-frontend.vercel.app]
 
 ##  Usuarios de Prueba
 
@@ -40,7 +40,7 @@ Ejemplos de variables requeridas (sin valores reales):
 DB_URL=jdbc:postgresql://aws-0-sa-east-1.pooler.supabase.com:6543/postgres
 DB_USER=postgres.[tu_usuario]
 DB_PASSWORD=[tu_password_de_supabase]
-JWT_SECRET=[clave_muy_larga_de_al_menos_32_caracteres]
+JWT_SECRET=[clave]
 APP_FRONTEND_URL=http://localhost:5173
 
 3. Ejecutar la aplicación:
